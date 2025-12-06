@@ -1,0 +1,344 @@
+@import "tailwindcss";
+
+/* Custom theme variables */
+:root {
+  --primary: #7C3AED;
+  --primary-dark: #6B21A8;
+  --primary-light: #A78BFA;
+  --primary-50: #F5F3FF;
+  --primary-100: #EDE9FE;
+  --secondary: #F59E0B;
+  --success: #10B981;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+}
+
+/* Base styles */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #F9FAFB;
+}
+
+/* Card component */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #E5E7EB;
+}
+
+/* Button styles */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-primary:disabled {
+  background: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: white;
+  color: #374151;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 14px;
+  border: 1px solid #E5E7EB;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #F9FAFB;
+}
+
+/* Input styles */
+.input-field {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #1F2937;
+  transition: all 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-50);
+}
+
+.input-field::placeholder {
+  color: #9CA3AF;
+}
+
+/* Select styles */
+select.input-field {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+/* Textarea styles */
+textarea.input-field {
+  height: auto;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+/* Badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.badge-pending {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.badge-in-progress {
+  background: var(--primary-100);
+  color: var(--primary-dark);
+}
+
+.badge-completed {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.badge-cancelled {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+/* Table styles */
+.table-container {
+  overflow-x: auto;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid #E5E7EB;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead {
+  background: #F9FAFB;
+}
+
+.data-table th {
+  padding: 14px 20px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6B7280;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.data-table td {
+  padding: 16px 20px;
+  font-size: 14px;
+  color: #1F2937;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: #F9FAFB;
+}
+
+/* Checkbox styles */
+.checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #D1D5DB;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.checkbox:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Stat card styles */
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon.purple {
+  background: var(--primary-100);
+  color: var(--primary);
+}
+
+.stat-icon.green {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.stat-icon.orange {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.stat-icon.blue {
+  background: #DBEAFE;
+  color: #2563EB;
+}
+
+/* Sidebar navigation item */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6B7280;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background: #F9FAFB;
+  color: #1F2937;
+}
+
+.nav-item.active {
+  background: var(--primary-100);
+  color: var(--primary);
+  border-left: 3px solid var(--primary);
+  margin-left: -3px;
+}
+
+/* Profile card (like the student card in reference) */
+.profile-card {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+}
+
+/* Action buttons */
+.action-btn {
+  padding: 8px;
+  border-radius: 8px;
+  color: #6B7280;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: #F3F4F6;
+  color: var(--primary);
+}
+
+/* Search input */
+.search-input {
+  position: relative;
+}
+
+.search-input input {
+  padding-left: 44px;
+}
+
+.search-input svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9CA3AF;
+}
+
+/* Loading spinner */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F3F4F6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Smooth animations for tabs */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
