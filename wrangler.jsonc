@@ -1,6 +1,7 @@
 {
   "name": "lapto-admin-frontend",
   "compatibility_date": "2025-12-06",
+  "main": "worker.js",
   "assets": {
     "directory": "./dist"
   }
