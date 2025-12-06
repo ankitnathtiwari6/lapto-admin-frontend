@@ -6,9 +6,9 @@ import { deviceTypeService } from '../services/deviceTypeService';
 import { serviceTypeService } from '../services/serviceTypeService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
-import type { ServiceOrder, DeviceType, ServiceType, Customer } from '../types';
+import type { ServiceOrder, DeviceType, ServiceType } from '../types';
 import type { Product } from '../services/productService';
-import { ArrowLeft, X, Plus, Save } from 'lucide-react';
+import { ArrowLeft, X, Save } from 'lucide-react';
 
 interface FormData {
   deviceTypeId: string;
@@ -23,7 +23,7 @@ interface FormData {
 const EditOrderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>();
+  const { register, handleSubmit, setValue } = useForm<FormData>();
 
   const [order, setOrder] = useState<ServiceOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,8 +43,6 @@ const EditOrderPage: React.FC = () => {
   // Services/Products state
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-
-  const deviceTypeId = watch('deviceTypeId');
 
   useEffect(() => {
     fetchOrder();
@@ -76,6 +74,9 @@ const EditOrderPage: React.FC = () => {
     try {
       const response = await orderService.getById(id!);
       const orderData = response.data;
+      if (!orderData) {
+        throw new Error("Order not found");
+      }
       setOrder(orderData);
 
       // Set customer

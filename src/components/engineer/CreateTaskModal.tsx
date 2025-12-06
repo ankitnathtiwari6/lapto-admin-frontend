@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import engineerService, { type CreateTaskData } from "../../services/engineerService";
 import orderService from "../../services/orderService";
+import type { ServiceOrder } from "../../types";
 import { X, Plus, AlertCircle, CheckCircle, User } from "lucide-react";
 
 interface CreateTaskModalProps {
@@ -20,16 +21,6 @@ interface Engineer {
   };
 }
 
-interface Order {
-  _id: string;
-  orderNumber: string;
-  device?: {
-    deviceTypeName: string;
-    brand: string;
-    model: string;
-  };
-}
-
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
@@ -37,7 +28,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   onSuccess,
 }) => {
   const [engineers, setEngineers] = useState<Engineer[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -48,8 +39,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     description: "",
   });
 
-  const [selectedEngineer, setSelectedEngineer] = useState<Engineer | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedEngineer, setSelectedEngineer] = useState<Engineer | null>(
+    null
+  );
+  const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -74,7 +67,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const fetchOrders = async () => {
     try {
       const response = await orderService.getAll({ limit: 100 });
-      setOrders(response.data);
+      if (response.data) {
+        setOrders(response.data);
+      }
     } catch (error) {
       console.error("Error fetching orders:", error);
     }

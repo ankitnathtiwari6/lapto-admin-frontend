@@ -170,7 +170,7 @@ const StaffPage: React.FC = () => {
     setOrdersSummary(null);
   };
 
-  const handleViewAllSubTasks = (staffId: string) => {
+  const handleViewAllSubTasks = (_staffId: any) => {
     // Collect all subtasks from the staff orders
     const tasks: Array<{ task: any; order: StaffOrder }> = [];
     staffOrders.forEach(order => {

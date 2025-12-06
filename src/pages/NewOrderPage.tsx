@@ -64,7 +64,7 @@ const NewOrderPage: React.FC = () => {
   const [customServicePrice, setCustomServicePrice] = useState<number>(0);
   const [additionalDiscount, setAdditionalDiscount] = useState<number>(0);
   const [paidAmount, setPaidAmount] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(18);
+  const [taxRate] = useState<number>(18);
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
 
@@ -216,6 +216,10 @@ const NewOrderPage: React.FC = () => {
     try {
       const response = await aiService.generateOrder(jobDetails);
       const generatedData = response.data;
+
+      if (!generatedData) {
+        throw new Error("Failed to generate order details.");
+      }
 
       // Store AI-generated customer info for modal prefill
       if (generatedData.customerInfo) {

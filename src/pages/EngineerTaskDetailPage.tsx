@@ -7,11 +7,9 @@ import {
   Package,
   CheckCircle,
   Clock,
-  AlertCircle,
   Play,
   CheckSquare,
   Calendar,
-  DollarSign,
   Wrench
 } from 'lucide-react';
 import { format } from 'date-fns';

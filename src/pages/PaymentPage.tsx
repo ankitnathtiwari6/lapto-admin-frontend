@@ -352,7 +352,7 @@ const PaymentPage: React.FC = () => {
           yPos = 20;
         }
 
-        doc.text(item.serviceTypeName, margin + 2, yPos + 5);
+        doc.text(item.serviceTypeName || '', margin + 2, yPos + 5);
         doc.text(`₹${item.totalAmount.toFixed(2)}`, pageWidth - margin - 2, yPos + 5, { align: 'right' });
         doc.setDrawColor(220, 220, 220);
         doc.line(margin, yPos + 8, pageWidth - margin, yPos + 8);

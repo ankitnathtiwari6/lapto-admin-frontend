@@ -82,8 +82,10 @@ const CustomerCreateModal: React.FC<CustomerCreateModalProps> = ({
       onClose();
 
       // Notify parent component
-      onCustomerCreated(newCustomer);
-
+      if (newCustomer) {
+        onCustomerCreated(newCustomer);
+      }
+      
       alert("Customer created successfully!");
     } catch (error: any) {
       alert(error.response?.data?.message || "Error creating customer");

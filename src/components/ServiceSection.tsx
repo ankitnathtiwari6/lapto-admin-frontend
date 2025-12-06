@@ -47,17 +47,12 @@ interface ServiceSectionProps {
 
 const ServiceSection: React.FC<ServiceSectionProps> = ({
   selectedServices,
-  serviceTypes,
-  customServiceName,
-  customServicePrice,
   onAddService,
   onAddCustomService,
   onUpdateServiceField,
   onRemoveService,
   onCustomServiceNameChange,
   onCustomServicePriceChange,
-  invoiceAmounts,
-  taxRate,
   additionalDiscount = 0,
   onAdditionalDiscountChange,
   paidAmount = 0,
@@ -109,20 +104,6 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
       onAddService(matchingService);
     } else {
       // Add custom service
-      const customId = `custom-${Date.now()}`;
-      const customService = {
-        serviceTypeId: customId,
-        serviceTypeName: serviceSearchQuery,
-        description: "",
-        quantity: 1,
-        unitPrice: customPrice,
-        discount: 0,
-        taxRate: 18,
-        estimatedCost: customPrice,
-        isCustom: true,
-      };
-
-      // Manually add to selected services (we'll need to update parent)
       onCustomServiceNameChange(serviceSearchQuery);
       onCustomServicePriceChange(customPrice);
       onAddCustomService();

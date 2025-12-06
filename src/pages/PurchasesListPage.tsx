@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../lib/api';
-import { Search, Filter, Download, Calendar } from 'lucide-react';
+import { Filter, Download } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PurchaseRecord {

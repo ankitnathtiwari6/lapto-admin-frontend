@@ -4,9 +4,18 @@ export interface CompanyUser {
   email?: string;
   phone: string;
   companyId: string | Company;
-  role: 'super_admin' | 'admin' | 'engineer' | 'accountant' | 'reception';
+  role: 'super_admin' | 'admin' | 'engineer' | 'accountant' | 'reception' | 'customer';
+  userTypes?: Array<'super_admin' | 'admin' | 'engineer' | 'customer'>;
   status: 'active' | 'inactive' | 'suspended';
   engineerDetails?: {
+    employeeId?: string;
+    specialization?: string[];
+    currentWorkload: number;
+    rating: number;
+    totalRepairsCompleted: number;
+    joinDate?: string;
+  };
+  technicianDetails?: {
     employeeId?: string;
     specialization?: string[];
     currentWorkload: number;
@@ -18,6 +27,12 @@ export interface CompanyUser {
     employeeId?: string;
     permissions?: string[];
     joinDate?: string;
+  };
+  customerDetails?: {
+    address?: string;
+    gstin?: string;
+    notes?: string;
+    alternatePhone?: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -97,6 +112,7 @@ export interface Company {
 export interface CompanySettings {
   _id?: string;
   companyName: string;
+  name: string;
   gstin: string;
   address: string;
   city: string;
@@ -271,6 +287,8 @@ export interface ServiceOrder extends Order {}
 
 export interface DashboardAnalytics {
   totalOrders: number;
+  activeTechnicians: number;
+  totalCustomers: number;
   ordersByStatus: Array<{
     _id: string;
     count: number;
@@ -295,6 +313,25 @@ export interface DashboardAnalytics {
     ordersCompleted: number;
     avgRepairTime: number;
     avgRating: number;
+  }>;
+  technicianPerformance: Array<{
+    _id: string;
+    userName: string;
+    technicianName: string;
+    ordersCompleted: number;
+    totalOrders: number;
+    avgRepairTime: number;
+    avgCompletionTime: number;
+    avgRating: number;
+    totalRevenue: number;
+  }>;
+  popularServices: Array<{
+    _id: {
+      serviceTypeId: string;
+      serviceTypeName: string;
+    };
+    count: number;
+    totalRevenue: number;
   }>;
 }
 
@@ -333,4 +370,134 @@ export interface OrderActivityLog {
   metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
+}
+
+// SubTask types (imported from subTaskService)
+export interface SubTask {
+  _id: string;
+  orderId: string;
+  orderNumber: string;
+  parentTaskId?: string;
+  taskLevel: number;
+  title: string;
+  description?: string;
+  createdBy: string;
+  createdByName: string;
+  assignedTo: string;
+  assignedToName: string;
+  assignedAt: Date;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked' | 'on_hold';
+  progress: number;
+  startedAt?: Date;
+  completedAt?: Date;
+  amount?: number;
+  isPaid: boolean;
+  partsUsed?: Array<{
+    partName: string;
+    quantity: number;
+    cost: number;
+    addedAt: Date;
+  }>;
+  updates: Array<{
+    note: string;
+    addedBy: string;
+    addedByName: string;
+    timestamp: Date;
+    type: 'comment' | 'status_change' | 'assignment' | 'completion' | 'progress_update';
+    oldValue?: string;
+    newValue?: string;
+  }>;
+  dependencies?: string[];
+  blockedBy?: string;
+  companyId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
+}
+
+export interface CreateSubTaskData {
+  title: string;
+  description?: string;
+  assignedTo: string;
+  parentTaskId?: string;
+  amount?: number;
+  isPaid?: boolean;
+  dependencies?: string[];
+}
+
+// Customer type
+export interface Customer {
+  _id: string;
+  customerId?: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  companyId: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Invoice types
+export interface Invoice {
+  _id: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  orderNumber: string;
+  orderId: string;
+  companyId: string;
+  customer: {
+    name: string;
+    phone: string;
+    email?: string;
+    address?: string;
+    gstin?: string;
+  };
+  items: Array<{
+    serviceTypeName?: string;
+    productName?: string;
+    description?: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+    taxRate: number;
+    taxAmount: number;
+    totalAmount: number;
+  }>;
+  subtotal: number;
+  discount: number;
+  taxBreakdown: {
+    cgst: number;
+    sgst: number;
+    igst: number;
+    totalTax: number;
+  };
+  totalTax: number;
+  roundOff: number;
+  finalAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+  paymentStatus: string;
+  paymentMethod?: string;
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Auth response type
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: User;
+    token: string;
+  };
+}
+
+// Generic API Response
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: string;
 }

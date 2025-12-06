@@ -78,6 +78,12 @@ export interface SubTaskStats {
 }
 
 const subTaskService = {
+  // Get all sub-tasks
+  getAll: async (params?: { status?: string; assignedTo?: string; page?: number; limit?: number }) => {
+    const response = await api.get('/subtasks', { params });
+    return response.data;
+  },
+
   // Create a new sub-task for an order
   create: async (orderId: string, data: CreateSubTaskData) => {
     const response = await api.post(`/orders/${orderId}/subtasks`, data);

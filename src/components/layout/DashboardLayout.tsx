@@ -13,9 +13,6 @@ import {
   Bell,
   MessageSquare,
   ChevronDown,
-  Receipt,
-  ShoppingCart,
-  TrendingUp,
 } from "lucide-react";
 
 const DashboardLayout: React.FC = () => {

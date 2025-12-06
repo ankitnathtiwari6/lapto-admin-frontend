@@ -54,7 +54,7 @@ const NewCustomerPage: React.FC = () => {
       alert("Customer created successfully!");
 
       // Store newly created customer in sessionStorage for auto-selection
-      if (returnTo === '/orders/new') {
+      if (newCustomer && returnTo === '/orders/new') {
         const savedState = sessionStorage.getItem('newOrderFormState');
         if (savedState) {
           const state = JSON.parse(savedState);

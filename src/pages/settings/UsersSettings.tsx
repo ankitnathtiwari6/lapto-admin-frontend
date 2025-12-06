@@ -49,7 +49,7 @@ const UsersSettings: React.FC = () => {
       phone: userToEdit.phone,
       email: userToEdit.email || '',
       password: '', // Don't populate password for security
-      role: userToEdit.role,
+      role: userToEdit.role as 'engineer' | 'admin' | 'accountant' | 'reception' | 'super_admin',
       status: userToEdit.status
     });
     setShowModal(true);

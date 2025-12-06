@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { userService } from "../services/userService";
-import type { User } from "../types";
 import { ArrowLeft, Save, User as UserIcon } from "lucide-react";
 
 interface FormData {
@@ -104,9 +103,10 @@ const UserFormPage: React.FC = () => {
       setValue("fullName", user.fullName);
       setValue("email", user.email || "");
       setValue("phone", user.phone);
-      setValue("userTypes", user.userTypes);
-      setSelectedUserTypes(user.userTypes);
-      setValue("role", user.role);
+      const validUserTypes = user.userTypes?.filter(t => ["admin", "engineer", "customer"].includes(t)) as ('admin' | 'engineer' | 'customer')[] | undefined;
+      setValue("userTypes", validUserTypes || []);
+      setSelectedUserTypes(validUserTypes || []);
+      setValue("role", user.role as "super_admin" | "admin" | "engineer" | "customer");
       setValue("status", user.status);
 
       // Set customer details

@@ -17,7 +17,6 @@ interface WorkAssignmentPipelineProps {
 const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
   orderId,
   orderNumber,
-  customerName,
   stageName,
   assignedToName,
   subTasks,

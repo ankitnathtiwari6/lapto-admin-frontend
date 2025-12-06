@@ -6,7 +6,6 @@ import {
   Clock,
   AlertCircle,
   Package,
-  Calendar,
   Play,
   CheckSquare,
   XCircle,
