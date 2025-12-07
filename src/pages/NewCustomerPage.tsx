@@ -8,7 +8,7 @@ interface CustomerFormData {
   fullName: string;
   phone: string;
   email?: string;
-  address?: string;
+  address: string;
   alternatePhone?: string;
 }
 
@@ -175,15 +175,20 @@ const NewCustomerPage: React.FC = () => {
               )}
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
+                Address *
               </label>
               <input
-                {...register("address")}
+                {...register("address", { required: "Address is required" })}
                 className="input-field"
                 placeholder="123 Main Street, City"
               />
+              {errors.address && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.address.message}
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -107,9 +107,8 @@ const UsersPage: React.FC = () => {
                     </h3>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`badge ${
-                        user.role === 'admin' || user.role === 'super_admin' ? 'badge-pending' :
+                        user.role === 'admin' ? 'badge-pending' :
                         user.role === 'engineer' ? 'badge-in-progress' :
-                        user.role === 'accountant' ? 'badge-completed' :
                         'badge-cancelled'
                       }`}>
                         <Shield className="w-3 h-3 mr-1" />

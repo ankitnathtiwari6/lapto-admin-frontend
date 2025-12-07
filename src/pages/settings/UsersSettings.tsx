@@ -17,7 +17,7 @@ const UsersSettings: React.FC = () => {
     phone: '',
     email: '',
     password: '',
-    role: 'engineer' as 'engineer' | 'admin' | 'accountant' | 'reception' | 'super_admin',
+    role: 'engineer' as 'engineer' | 'admin',
     status: 'active' as 'active' | 'inactive' | 'suspended'
   });
 
@@ -27,7 +27,7 @@ const UsersSettings: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await userService.getAll({ role: 'engineer,admin,accountant,reception' });
+      const res = await userService.getAll({ role: 'engineer,admin' });
       setUsers(res.data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -49,7 +49,7 @@ const UsersSettings: React.FC = () => {
       phone: userToEdit.phone,
       email: userToEdit.email || '',
       password: '', // Don't populate password for security
-      role: userToEdit.role as 'engineer' | 'admin' | 'accountant' | 'reception' | 'super_admin',
+      role: (userToEdit.role === 'engineer' || userToEdit.role === 'admin') ? userToEdit.role : 'engineer',
       status: userToEdit.status
     });
     setShowModal(true);
@@ -205,9 +205,8 @@ const UsersSettings: React.FC = () => {
                     </h3>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`badge ${
-                        userItem.role === 'admin' || userItem.role === 'super_admin' ? 'badge-pending' :
+                        userItem.role === 'admin' ? 'badge-pending' :
                         userItem.role === 'engineer' ? 'badge-in-progress' :
-                        userItem.role === 'accountant' ? 'badge-completed' :
                         'badge-cancelled'
                       }`}>
                         <Shield className="w-3 h-3 mr-1" />
@@ -341,9 +340,6 @@ const UsersSettings: React.FC = () => {
                     >
                       <option value="engineer">Engineer</option>
                       <option value="admin">Admin</option>
-                      <option value="accountant">Accountant</option>
-                      <option value="reception">Reception</option>
-                      <option value="super_admin">Super Admin</option>
                     </select>
                   </div>
                 </div>

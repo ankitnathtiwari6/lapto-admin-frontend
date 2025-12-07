@@ -8,7 +8,7 @@ interface CustomerFormData {
   fullName: string;
   phone: string;
   email?: string;
-  address?: string;
+  address: string;
   alternatePhone?: string;
 }
 
@@ -209,14 +209,19 @@ const CustomerCreateModal: React.FC<CustomerCreateModalProps> = ({
             {/* Address */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
+                Address *
               </label>
               <textarea
-                {...register("address")}
+                {...register("address", { required: "Address is required" })}
                 className="input-field resize-none"
                 rows={3}
                 placeholder="123 Main Street, City, State, PIN"
               />
+              {errors.address && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.address.message}
+                </p>
+              )}
             </div>
           </div>
 

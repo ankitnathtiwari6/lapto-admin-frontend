@@ -42,6 +42,7 @@ export interface EngineerTask {
       type: string;
       uploadedAt: string;
     }>;
+    priority?: string;
   };
   title: string;
   description?: string;
@@ -66,6 +67,7 @@ export interface EngineerTask {
     oldValue?: string;
     newValue?: string;
   }>;
+  isOrderTask?: boolean; // Flag to identify order-level tasks vs subtasks
 }
 
 export interface CreateTaskData {
@@ -123,7 +125,15 @@ class EngineerService {
   }
 
   async createTask(taskData: CreateTaskData) {
-    const response = await api.post<{ success: boolean; data: EngineerTask }>('/engineer/tasks', taskData);
+    const { orderId, engineerId, title, description } = taskData;
+    const response = await api.post<{ success: boolean; data: EngineerTask }>(
+      `/orders/${orderId}/subtasks`,
+      {
+        assignedTo: engineerId,
+        title,
+        description
+      }
+    );
     return response.data;
   }
 

@@ -251,9 +251,16 @@ const OrderDetailPage: React.FC = () => {
               </span>
             )}
           </div>
-          <p className="text-gray-500 text-sm mt-1">
-            Created on {order.receivedDate ? format(new Date(order.receivedDate), 'MMM dd, yyyy') : 'N/A'}
-          </p>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-gray-500 text-sm">
+              Created on {order.receivedDate ? format(new Date(order.receivedDate), 'MMM dd, yyyy') : 'N/A'}
+            </p>
+            {order.voucherNo && (
+              <p className="text-gray-500 text-sm">
+                • Voucher: <span className="font-medium text-gray-700">{order.voucherNo}</span>
+              </p>
+            )}
+          </div>
         </div>
         <button
           onClick={() => navigate(`/orders/${id}/edit`)}

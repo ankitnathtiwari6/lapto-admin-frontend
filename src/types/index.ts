@@ -132,6 +132,7 @@ export interface CompanySettings {
 export interface Order {
   _id: string;
   orderNumber: string;
+  voucherNo?: string;
   orderType: 'service' | 'product';
   companyId: string;
   customer: {

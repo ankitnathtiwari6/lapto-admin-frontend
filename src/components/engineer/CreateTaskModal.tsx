@@ -9,6 +9,7 @@ interface CreateTaskModalProps {
   onClose: () => void;
   onSuccess: () => void;
   currentUserId: string;
+  prefilledOrderId?: string;
 }
 
 interface Engineer {
@@ -26,6 +27,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   onClose,
   currentUserId,
   onSuccess,
+  prefilledOrderId,
 }) => {
   const [engineers, setEngineers] = useState<Engineer[]>([]);
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
@@ -33,7 +35,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const [formData, setFormData] = useState<CreateTaskData>({
-    orderId: "",
+    orderId: prefilledOrderId || "",
     engineerId: "",
     title: "",
     description: "",
@@ -48,8 +50,23 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     if (isOpen) {
       fetchEngineers();
       fetchOrders();
+
+      // Set prefilled order ID if provided
+      if (prefilledOrderId) {
+        setFormData(prev => ({ ...prev, orderId: prefilledOrderId }));
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, prefilledOrderId]);
+
+  // Set selected order when orders are loaded and we have a prefilled order ID
+  useEffect(() => {
+    if (prefilledOrderId && orders.length > 0) {
+      const order = orders.find((ord) => ord._id === prefilledOrderId);
+      if (order) {
+        setSelectedOrder(order);
+      }
+    }
+  }, [prefilledOrderId, orders]);
 
   const fetchEngineers = async () => {
     try {
@@ -149,8 +166,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <Plus className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Create New Task</h3>
-              <p className="text-sm text-gray-500">Assign task to another engineer</p>
+              <h3 className="text-lg font-bold text-gray-900">
+                {prefilledOrderId ? 'Create Subtask' : 'Create New Task'}
+              </h3>
+              <p className="text-sm text-gray-500">
+                {prefilledOrderId ? 'Delegate part of this order to another engineer' : 'Assign task to another engineer'}
+              </p>
             </div>
           </div>
           <button
@@ -169,13 +190,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Order <span className="text-red-500">*</span>
+                  {prefilledOrderId && (
+                    <span className="ml-2 text-xs text-purple-600 font-normal">(Pre-selected)</span>
+                  )}
                 </label>
                 <select
                   name="orderId"
                   value={formData.orderId}
                   onChange={handleInputChange}
                   required
-                  className="input-field"
+                  disabled={!!prefilledOrderId}
+                  className={`input-field ${prefilledOrderId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 >
                   <option value="">Choose an order...</option>
                   {orders.map((order) => (

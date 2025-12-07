@@ -10,16 +10,21 @@ import {
   Play,
   CheckSquare,
   Calendar,
-  Wrench
+  Wrench,
+  Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAuth } from '../context/AuthContext';
+import CreateTaskModal from '../components/engineer/CreateTaskModal';
 
 const EngineerTaskDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [task, setTask] = useState<EngineerTask | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -117,7 +122,14 @@ const EngineerTaskDetailPage: React.FC = () => {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{task.title}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{task.title}</h1>
+            {task.isOrderTask && (
+              <span className="bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full font-semibold">
+                Order Task
+              </span>
+            )}
+          </div>
           <p className="text-gray-500 text-sm mt-1">
             Assigned on {format(new Date(task.assignedAt), 'MMM dd, yyyy')}
           </p>
@@ -331,6 +343,20 @@ const EngineerTaskDetailPage: React.FC = () => {
                   )}
                 </div>
               )}
+
+              {/* Create Subtask Button */}
+              <div className="pt-3 border-t border-gray-200">
+                <button
+                  onClick={() => setShowCreateTaskModal(true)}
+                  className="w-full bg-purple-600 text-white px-4 py-2.5 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Subtask
+                </button>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Delegate part of this work to another engineer
+                </p>
+              </div>
             </div>
           </div>
 
@@ -448,6 +474,18 @@ const EngineerTaskDetailPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={showCreateTaskModal}
+        onClose={() => setShowCreateTaskModal(false)}
+        currentUserId={user?._id || ''}
+        onSuccess={() => {
+          fetchTask();
+          setShowCreateTaskModal(false);
+        }}
+        prefilledOrderId={task.orderId._id}
+      />
     </div>
   );
 };

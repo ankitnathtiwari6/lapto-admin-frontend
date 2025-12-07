@@ -52,6 +52,9 @@ const EngineerTasksPage: React.FC = () => {
     try {
       setLoading(true);
       const response = await engineerService.getTasks();
+      console.log("Tasks response:", response);
+      console.log("Tasks count:", response.count);
+      console.log("Tasks data:", response.data);
       setTasks(response.data);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -181,9 +184,16 @@ const EngineerTasksPage: React.FC = () => {
 
         {/* Task Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-gray-900 text-sm md:text-base line-clamp-1 mb-1.5 group-hover:text-purple-600 transition-colors">
-            {task.title}
-          </h3>
+          <div className="flex items-center gap-2 mb-1.5">
+            <h3 className="font-bold text-gray-900 text-sm md:text-base line-clamp-1 group-hover:text-purple-600 transition-colors">
+              {task.title}
+            </h3>
+            {task.isOrderTask && (
+              <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-semibold shrink-0">
+                Order
+              </span>
+            )}
+          </div>
 
           <div className="space-y-1 text-xs mb-2">
             <div className="flex items-center gap-1.5">

@@ -249,6 +249,7 @@ const OrdersPage: React.FC = () => {
                     <input type="checkbox" className="checkbox" />
                   </th>
                   <th>Order #</th>
+                  <th>Voucher #</th>
                   <th>Customer</th>
                   <th>Device</th>
                   <th>Stage</th>
@@ -265,6 +266,13 @@ const OrdersPage: React.FC = () => {
                     </td>
                     <td>
                       <span className="font-semibold text-purple-600">{order.orderNumber}</span>
+                    </td>
+                    <td>
+                      {order.voucherNo ? (
+                        <span className="text-gray-700">{order.voucherNo}</span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
                     </td>
                     <td>
                       <div>
