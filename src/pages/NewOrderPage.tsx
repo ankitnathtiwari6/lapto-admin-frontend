@@ -16,6 +16,7 @@ import CustomerCreateModal from "../components/CustomerCreateModal";
 import OrderItemsSection from "../components/OrderItemsSection";
 
 interface FormData {
+  voucherNo?: string;
   deviceTypeId: string;
   brand: string;
   model: string;
@@ -483,6 +484,7 @@ const NewOrderPage: React.FC = () => {
     try {
       const orderData: CreateOrderData = {
         orderType: actualOrderType,
+        voucherNo: formData.voucherNo,
         customer: {
           customerId: selectedCustomer._id,
           name: selectedCustomer.fullName,
@@ -622,6 +624,26 @@ const NewOrderPage: React.FC = () => {
               <div className="font-semibold">Mixed Order</div>
               <div className="text-sm mt-1 opacity-75">Services + Products</div>
             </button>
+          </div>
+        </div>
+
+        {/* Voucher Number */}
+        <div className="card">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">
+            Voucher Number
+          </h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Voucher No. (Optional)
+            </label>
+            <input
+              {...register("voucherNo")}
+              className="input-field"
+              placeholder="Enter voucher number if applicable"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Optional reference number for this order
+            </p>
           </div>
         </div>
 
