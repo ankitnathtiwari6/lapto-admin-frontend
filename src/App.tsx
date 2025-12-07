@@ -25,6 +25,11 @@ import UsersSettings from "./pages/settings/UsersSettings";
 import CompanySettings from "./pages/settings/CompanySettings";
 import EngineerTasksPage from "./pages/EngineerTasksPage";
 import EngineerTaskDetailPage from "./pages/EngineerTaskDetailPage";
+import LaptoAdminLoginPage from "./pages/lapto-admin/LaptoAdminLoginPage";
+import LaptoAdminLayout from "./pages/lapto-admin/LaptoAdminLayout";
+import CompanyListPage from "./pages/lapto-admin/CompanyListPage";
+import CreateCompanyPage from "./pages/lapto-admin/CreateCompanyPage";
+import CompanyStaffPage from "./pages/lapto-admin/CompanyStaffPage";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -38,6 +43,21 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   }
 
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+}
+
+function LaptoAdminRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem("token");
+  const userType = localStorage.getItem("userType");
+
+  if (!token) {
+    return <Navigate to="/lapto-admin/login" />;
+  }
+
+  if (userType !== "lapto_admin") {
+    return <Navigate to="/login" />;
+  }
+
+  return <>{children}</>;
 }
 
 function RoleBasedHome() {
@@ -54,6 +74,24 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+
+      {/* Lapto Admin Routes */}
+      <Route path="/lapto-admin/login" element={<LaptoAdminLoginPage />} />
+      <Route
+        path="/lapto-admin"
+        element={
+          <LaptoAdminRoute>
+            <LaptoAdminLayout />
+          </LaptoAdminRoute>
+        }
+      >
+        <Route index element={<Navigate to="/lapto-admin/companies" replace />} />
+        <Route path="companies" element={<CompanyListPage />} />
+        <Route path="companies/new" element={<CreateCompanyPage />} />
+        <Route path="companies/:companyId/staff" element={<CompanyStaffPage />} />
+      </Route>
+
+      {/* Regular App Routes */}
       <Route
         path="/"
         element={

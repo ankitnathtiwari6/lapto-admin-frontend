@@ -6,7 +6,7 @@ import type { User, AuthResponse } from "../types";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (phone: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -57,10 +57,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (phone: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
       const { data } = await api.post<AuthResponse>("/auth/login", {
-        phone,
+        email,
         password,
       });
       const { user, token } = data.data;

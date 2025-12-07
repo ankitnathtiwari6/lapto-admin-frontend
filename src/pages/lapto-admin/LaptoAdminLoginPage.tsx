@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { Wrench } from "lucide-react";
+import { Wrench, ArrowLeft } from "lucide-react";
+import api, { setAuthToken } from "../../lib/api";
 
-const LoginPage: React.FC = () => {
+const LaptoAdminLoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,29 +16,40 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate("/");
+      const { data } = await api.post("/lapto-admin/login", {
+        email,
+        password,
+      });
+
+      const { user, token } = data.data;
+
+      setAuthToken(token);
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("userType", "lapto_admin");
+
+      navigate("/lapto-admin/companies");
     } catch (err: any) {
-      setError(err.message || "Login failed");
+      setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-purple-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-indigo-100">
       <div className="w-full max-w-md p-8">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-purple-200">
+            <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
               <Wrench className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Lapto <span className="text-purple-600">Admin</span>
+              Lapto <span className="text-indigo-600">Admin</span>
             </h1>
             <p className="text-gray-500 text-sm mt-2">
-              Sign in to manage your repair business
+              Super Admin Portal
             </p>
           </div>
 
@@ -55,7 +65,7 @@ const LoginPage: React.FC = () => {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Email Address
+                Admin Email
               </label>
               <input
                 id="email"
@@ -64,7 +74,7 @@ const LoginPage: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="input-field"
-                placeholder="Enter your email address"
+                placeholder="Enter admin email"
               />
             </div>
 
@@ -82,27 +92,14 @@ const LoginPage: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="input-field"
-                placeholder="Enter your password"
+                placeholder="Enter admin password"
               />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="checkbox" />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </label>
-              <button
-                type="button"
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-              >
-                Forgot password?
-              </button>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full h-12 flex items-center justify-center gap-2"
+              className="btn-primary w-full h-12 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700"
             >
               {loading ? (
                 <>
@@ -125,20 +122,22 @@ const LoginPage: React.FC = () => {
                   Signing in...
                 </>
               ) : (
-                "Sign In"
+                "Admin Sign In"
               )}
             </button>
           </form>
-        </div>
 
-        <div className="mt-6 space-y-3">
-          <p className="text-center text-sm text-gray-500">
-            Need help? Contact your administrator
-          </p>
+          <button
+            onClick={() => navigate("/login")}
+            className="mt-6 w-full flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Regular Login
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default LoginPage;
+export default LaptoAdminLoginPage;
