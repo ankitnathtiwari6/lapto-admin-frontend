@@ -10,6 +10,7 @@ const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [workStatusFilter, setWorkStatusFilter] = useState<'all' | 'todo' | 'pending' | 'completed'>('all');
 
   // Statistics state
   const [stats, setStats] = useState({
@@ -24,13 +25,16 @@ const OrdersPage: React.FC = () => {
   useEffect(() => {
     fetchOrders();
     fetchStats();
-  }, []);
+  }, [workStatusFilter]);
 
   const fetchOrders = async () => {
     try {
-      const { data } = await api.get('/orders', {
-        params: { search }
-      });
+      const params: any = { search };
+      if (workStatusFilter !== 'all') {
+        params.workStatus = workStatusFilter;
+      }
+
+      const { data } = await api.get('/orders', { params });
       setOrders(data.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -209,6 +213,52 @@ const OrdersPage: React.FC = () => {
               </svg>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Work Status Filter Tabs */}
+      <div className="card p-0 overflow-hidden">
+        <div className="flex flex-wrap border-b border-gray-200">
+          <button
+            onClick={() => setWorkStatusFilter('all')}
+            className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
+              workStatusFilter === 'all'
+                ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-600'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            All Orders
+          </button>
+          <button
+            onClick={() => setWorkStatusFilter('todo')}
+            className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
+              workStatusFilter === 'todo'
+                ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            To Do
+          </button>
+          <button
+            onClick={() => setWorkStatusFilter('pending')}
+            className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
+              workStatusFilter === 'pending'
+                ? 'bg-orange-50 text-orange-700 border-b-2 border-orange-600'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            In Progress
+          </button>
+          <button
+            onClick={() => setWorkStatusFilter('completed')}
+            className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
+              workStatusFilter === 'completed'
+                ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            Completed
+          </button>
         </div>
       </div>
 
