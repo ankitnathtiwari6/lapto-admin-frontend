@@ -1,11 +1,13 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Wrench, Smartphone, GitBranch, Users, Building2 } from "lucide-react";
+import { Wrench, Smartphone, GitBranch, Users, Building2, ListChecks, CheckCircle } from "lucide-react";
 
 const SettingsLayout: React.FC = () => {
   const navItems = [
     { to: "/settings/services", icon: Wrench, label: "Service Types" },
     { to: "/settings/devices", icon: Smartphone, label: "Device Types" },
+    { to: "/settings/task-types", icon: ListChecks, label: "Task Types" },
+    { to: "/settings/outcome-types", icon: CheckCircle, label: "Outcome Types" },
     { to: "/settings/stages", icon: GitBranch, label: "Stages" },
     { to: "/settings/users", icon: Users, label: "Users" },
     { to: "/settings/company", icon: Building2, label: "Company" },

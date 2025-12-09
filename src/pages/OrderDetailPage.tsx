@@ -56,7 +56,13 @@ const OrderDetailPage: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data } = await api.get('/users');
+      // Fetch staff from the current company - auth middleware filters by company automatically
+      const { data } = await api.get('/staff', {
+        params: {
+          status: 'active',
+          role: 'engineer,admin,super_admin'
+        }
+      });
       setUsers(data.data);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -244,7 +250,9 @@ const OrderDetailPage: React.FC = () => {
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-gray-900">{order.orderNumber}</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              {order.voucherNo || order.orderNumber}
+            </h1>
             {order.stageName && (
               <span className={`badge ${getStageBadge(order.stageName)}`}>
                 {order.stageName}
@@ -255,11 +263,9 @@ const OrderDetailPage: React.FC = () => {
             <p className="text-gray-500 text-sm">
               Created on {order.receivedDate ? format(new Date(order.receivedDate), 'MMM dd, yyyy') : 'N/A'}
             </p>
-            {order.voucherNo && (
-              <p className="text-gray-500 text-sm">
-                • Voucher: <span className="font-medium text-gray-700">{order.voucherNo}</span>
-              </p>
-            )}
+            <p className="text-gray-500 text-sm">
+              • Order: <span className="font-medium text-gray-700">{order.orderNumber}</span>
+            </p>
           </div>
         </div>
         <button
@@ -335,7 +341,7 @@ const OrderDetailPage: React.FC = () => {
           {/* Work Assignment Pipeline */}
           <WorkAssignmentPipeline
             orderId={id!}
-            orderNumber={order.orderNumber}
+            orderNumber={order.voucherNo || order.orderNumber}
             customerName={order.customer.name}
             stageName={order.stageName}
             assignedToName={order.assignedTo?.userName}

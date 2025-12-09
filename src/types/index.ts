@@ -382,6 +382,8 @@ export interface SubTask {
   taskLevel: number;
   title: string;
   description?: string;
+  taskType?: string;
+  taskTypeName?: string;
   createdBy: string;
   createdByName: string;
   assignedTo: string;
@@ -389,6 +391,10 @@ export interface SubTask {
   assignedAt: Date;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked' | 'on_hold';
   progress: number;
+  outcome?: 'completed' | 'returned' | 'parts_ordered' | 'replaced' | 'repaired' | 'cancelled' | 'other';
+  outcomeNotes?: string;
+  startDate?: Date;
+  dueDate?: Date;
   startedAt?: Date;
   completedAt?: Date;
   amount?: number;
@@ -419,8 +425,11 @@ export interface SubTask {
 export interface CreateSubTaskData {
   title: string;
   description?: string;
+  taskType?: string;
   assignedTo: string;
   parentTaskId?: string;
+  startDate?: string;
+  dueDate?: string;
   amount?: number;
   isPaid?: boolean;
   dependencies?: string[];

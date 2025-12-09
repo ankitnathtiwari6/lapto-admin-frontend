@@ -61,18 +61,26 @@ const CustomerCreateModal: React.FC<CustomerCreateModalProps> = ({
   const onSubmit = async (formData: CustomerFormData) => {
     setLoading(true);
     try {
-      const customerData = {
+      const customerData: any = {
         fullName: formData.fullName,
         phone: formData.phone,
-        email: formData.email,
         customerDetails: {
           address: formData.address,
-          alternatePhone: formData.alternatePhone,
           totalOrders: 0,
           totalSpent: 0,
         },
         status: "active" as const,
       };
+
+      // Only include email if it has a value
+      if (formData.email && formData.email.trim()) {
+        customerData.email = formData.email;
+      }
+
+      // Only include alternate phone if it has a value
+      if (formData.alternatePhone && formData.alternatePhone.trim()) {
+        customerData.customerDetails.alternatePhone = formData.alternatePhone;
+      }
 
       const response = await customerService.create(customerData);
       const newCustomer = response.data;

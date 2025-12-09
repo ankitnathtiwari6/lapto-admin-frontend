@@ -20,6 +20,8 @@ import UserFormPage from "./pages/UserFormPage";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import ServiceTypesSettings from "./pages/settings/ServiceTypesSettings";
 import DeviceTypesSettings from "./pages/settings/DeviceTypesSettings";
+import TaskTypesSettings from "./pages/settings/TaskTypesSettings";
+import OutcomeTypesSettings from "./pages/settings/OutcomeTypesSettings";
 import StagesSettings from "./pages/settings/StagesSettings";
 import UsersSettings from "./pages/settings/UsersSettings";
 import CompanySettings from "./pages/settings/CompanySettings";
@@ -126,6 +128,8 @@ function AppRoutes() {
           <Route index element={<Navigate to="/settings/services" replace />} />
           <Route path="services" element={<ServiceTypesSettings />} />
           <Route path="devices" element={<DeviceTypesSettings />} />
+          <Route path="task-types" element={<TaskTypesSettings />} />
+          <Route path="outcome-types" element={<OutcomeTypesSettings />} />
           <Route path="stages" element={<StagesSettings />} />
           <Route path="users" element={<UsersSettings />} />
           <Route path="company" element={<CompanySettings />} />

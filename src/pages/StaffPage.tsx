@@ -1,8 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../lib/api';
-import { Plus, Phone, Briefcase, CheckCircle, Clock, TrendingUp, DollarSign, Eye, X, Users, Target, Award, Activity } from 'lucide-react';
-import { format } from 'date-fns';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../lib/api";
+import {
+  Plus,
+  Phone,
+  Briefcase,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  DollarSign,
+  Eye,
+  X,
+  Users,
+  Target,
+  Award,
+  Activity,
+} from "lucide-react";
+import { format } from "date-fns";
 
 interface StaffMember {
   _id: string;
@@ -45,6 +59,7 @@ interface Analytics {
 interface StaffOrder {
   _id: string;
   orderNumber: string;
+  voucherNo?: string;
   customer: {
     name: string;
     phone: string;
@@ -79,9 +94,14 @@ const StaffPage: React.FC = () => {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<StaffOrder | null>(null);
-  const [selectedSubTask, setSelectedSubTask] = useState<{ task: any; order: StaffOrder } | null>(null);
+  const [selectedSubTask, setSelectedSubTask] = useState<{
+    task: any;
+    order: StaffOrder;
+  } | null>(null);
   const [showAllSubTasks, setShowAllSubTasks] = useState(false);
-  const [allSubTasks, setAllSubTasks] = useState<Array<{ task: any; order: StaffOrder }>>([]);
+  const [allSubTasks, setAllSubTasks] = useState<
+    Array<{ task: any; order: StaffOrder }>
+  >([]);
 
   useEffect(() => {
     fetchStaff();
@@ -89,20 +109,37 @@ const StaffPage: React.FC = () => {
 
   const calculateAnalytics = (staffData: StaffMember[]): Analytics => {
     const totalStaff = staffData.length;
-    const activeStaff = staffData.filter(s => s.status === 'active').length;
+    const activeStaff = staffData.filter((s) => s.status === "active").length;
 
-    const totalOrders = staffData.reduce((sum, s) => sum + s.orderStats.totalOrders, 0);
-    const totalCompletedOrders = staffData.reduce((sum, s) => sum + s.orderStats.completedOrders, 0);
-    const totalOrderValue = staffData.reduce((sum, s) => sum + s.orderStats.totalOrderValue, 0);
-    const totalCommissionPaid = staffData.reduce((sum, s) => sum + s.orderStats.totalCommission, 0);
+    const totalOrders = staffData.reduce(
+      (sum, s) => sum + s.orderStats.totalOrders,
+      0
+    );
+    const totalCompletedOrders = staffData.reduce(
+      (sum, s) => sum + s.orderStats.completedOrders,
+      0
+    );
+    const totalOrderValue = staffData.reduce(
+      (sum, s) => sum + s.orderStats.totalOrderValue,
+      0
+    );
+    const totalCommissionPaid = staffData.reduce(
+      (sum, s) => sum + s.orderStats.totalCommission,
+      0
+    );
 
     const avgOrdersPerStaff = totalStaff > 0 ? totalOrders / totalStaff : 0;
-    const avgCommissionPerStaff = totalStaff > 0 ? totalCommissionPaid / totalStaff : 0;
-    const completionRate = totalOrders > 0 ? (totalCompletedOrders / totalOrders) * 100 : 0;
+    const avgCommissionPerStaff =
+      totalStaff > 0 ? totalCommissionPaid / totalStaff : 0;
+    const completionRate =
+      totalOrders > 0 ? (totalCompletedOrders / totalOrders) * 100 : 0;
 
     // Find top performer (most completed orders)
     const topPerformer = staffData.reduce((top, current) => {
-      if (!top || current.orderStats.completedOrders > top.orderStats.completedOrders) {
+      if (
+        !top ||
+        current.orderStats.completedOrders > top.orderStats.completedOrders
+      ) {
         return current;
       }
       return top;
@@ -117,17 +154,17 @@ const StaffPage: React.FC = () => {
       avgOrdersPerStaff,
       avgCommissionPerStaff,
       topPerformer,
-      completionRate
+      completionRate,
     };
   };
 
   const fetchStaff = async () => {
     try {
-      const { data } = await api.get('/staff/with-stats');
+      const { data } = await api.get("/staff/with-stats");
       setStaff(data.data);
       setAnalytics(calculateAnalytics(data.data));
     } catch (error) {
-      console.error('Error fetching staff:', error);
+      console.error("Error fetching staff:", error);
     } finally {
       setLoading(false);
     }
@@ -141,28 +178,39 @@ const StaffPage: React.FC = () => {
       setOrdersSummary(data.data.summary);
       setSelectedStaff(staffId);
     } catch (error) {
-      console.error('Error fetching staff orders:', error);
+      console.error("Error fetching staff orders:", error);
     } finally {
       setLoadingOrders(false);
     }
   };
 
   const getStageBadge = (stageName: string) => {
-    const normalizedName = stageName?.toLowerCase() || '';
-    if (normalizedName.includes('pending')) return 'badge-pending';
-    if (normalizedName.includes('assigned') || normalizedName.includes('progress') || normalizedName.includes('diagnosis')) return 'badge-in-progress';
-    if (normalizedName.includes('completed') || normalizedName.includes('delivered') || normalizedName.includes('ready')) return 'badge-completed';
-    if (normalizedName.includes('cancelled') || normalizedName.includes('hold')) return 'badge-cancelled';
-    return 'badge';
+    const normalizedName = stageName?.toLowerCase() || "";
+    if (normalizedName.includes("pending")) return "badge-pending";
+    if (
+      normalizedName.includes("assigned") ||
+      normalizedName.includes("progress") ||
+      normalizedName.includes("diagnosis")
+    )
+      return "badge-in-progress";
+    if (
+      normalizedName.includes("completed") ||
+      normalizedName.includes("delivered") ||
+      normalizedName.includes("ready")
+    )
+      return "badge-completed";
+    if (normalizedName.includes("cancelled") || normalizedName.includes("hold"))
+      return "badge-cancelled";
+    return "badge";
   };
 
-  const getCompensationBadge = (type?: string) => {
-    if (!type) return 'Fixed';
-    if (type === 'fixed') return 'Fixed Salary';
-    if (type === 'commission') return 'Commission Only';
-    if (type === 'both') return 'Fixed + Commission';
-    return type;
-  };
+  // const getCompensationBadge = (type?: string) => {
+  //   if (!type) return 'Fixed';
+  //   if (type === 'fixed') return 'Fixed Salary';
+  //   if (type === 'commission') return 'Commission Only';
+  //   if (type === 'both') return 'Fixed + Commission';
+  //   return type;
+  // };
 
   const closeModal = () => {
     setSelectedStaff(null);
@@ -173,9 +221,9 @@ const StaffPage: React.FC = () => {
   const handleViewAllSubTasks = (_staffId: any) => {
     // Collect all subtasks from the staff orders
     const tasks: Array<{ task: any; order: StaffOrder }> = [];
-    staffOrders.forEach(order => {
+    staffOrders.forEach((order) => {
       if (order.subTasks && order.subTasks.length > 0) {
-        order.subTasks.forEach(subTask => {
+        order.subTasks.forEach((subTask) => {
           tasks.push({ task: subTask, order });
         });
       }
@@ -195,18 +243,22 @@ const StaffPage: React.FC = () => {
     );
   }
 
-  const selectedStaffMember = staff.find(s => s._id === selectedStaff);
+  const selectedStaffMember = staff.find((s) => s._id === selectedStaff);
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Staff Management</h1>
-          <p className="text-gray-500 text-sm mt-1">View staff members with order statistics and commission details</p>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Staff Management
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            View staff members with order statistics and commission details
+          </p>
         </div>
         <button
-          onClick={() => navigate('/staff/new')}
+          onClick={() => navigate("/staff/new")}
           className="btn-primary flex items-center justify-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -221,9 +273,15 @@ const StaffPage: React.FC = () => {
           <div className="card bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600 mb-1">Total Staff</p>
-                <p className="text-3xl font-bold text-blue-900">{analytics.totalStaff}</p>
-                <p className="text-xs text-blue-600 mt-1">{analytics.activeStaff} Active</p>
+                <p className="text-sm font-medium text-blue-600 mb-1">
+                  Total Staff
+                </p>
+                <p className="text-3xl font-bold text-blue-900">
+                  {analytics.totalStaff}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  {analytics.activeStaff} Active
+                </p>
               </div>
               <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
                 <Users className="w-6 h-6 text-white" />
@@ -235,9 +293,15 @@ const StaffPage: React.FC = () => {
           <div className="card bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-600 mb-1">Total Orders</p>
-                <p className="text-3xl font-bold text-purple-900">{analytics.totalOrders}</p>
-                <p className="text-xs text-purple-600 mt-1">{analytics.avgOrdersPerStaff.toFixed(1)} Avg/Staff</p>
+                <p className="text-sm font-medium text-purple-600 mb-1">
+                  Total Orders
+                </p>
+                <p className="text-3xl font-bold text-purple-900">
+                  {analytics.totalOrders}
+                </p>
+                <p className="text-xs text-purple-600 mt-1">
+                  {analytics.avgOrdersPerStaff.toFixed(1)} Avg/Staff
+                </p>
               </div>
               <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
                 <Briefcase className="w-6 h-6 text-white" />
@@ -249,9 +313,15 @@ const StaffPage: React.FC = () => {
           <div className="card bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600 mb-1">Total Order Value</p>
-                <p className="text-3xl font-bold text-green-900">₹{(analytics.totalOrderValue / 1000).toFixed(0)}K</p>
-                <p className="text-xs text-green-600 mt-1">{analytics.completionRate.toFixed(1)}% Completed</p>
+                <p className="text-sm font-medium text-green-600 mb-1">
+                  Total Order Value
+                </p>
+                <p className="text-3xl font-bold text-green-900">
+                  ₹{(analytics.totalOrderValue / 1000).toFixed(0)}K
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  {analytics.completionRate.toFixed(1)}% Completed
+                </p>
               </div>
               <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-white" />
@@ -263,9 +333,15 @@ const StaffPage: React.FC = () => {
           <div className="card bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-orange-600 mb-1">Commission Paid</p>
-                <p className="text-3xl font-bold text-orange-900">₹{(analytics.totalCommissionPaid / 1000).toFixed(0)}K</p>
-                <p className="text-xs text-orange-600 mt-1">₹{analytics.avgCommissionPerStaff.toFixed(0)} Avg/Staff</p>
+                <p className="text-sm font-medium text-orange-600 mb-1">
+                  Commission Paid
+                </p>
+                <p className="text-3xl font-bold text-orange-900">
+                  ₹{(analytics.totalCommissionPaid / 1000).toFixed(0)}K
+                </p>
+                <p className="text-xs text-orange-600 mt-1">
+                  ₹{analytics.avgCommissionPerStaff.toFixed(0)} Avg/Staff
+                </p>
               </div>
               <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-white" />
@@ -276,43 +352,56 @@ const StaffPage: React.FC = () => {
       )}
 
       {/* Top Performer Card */}
-      {analytics?.topPerformer && analytics.topPerformer.orderStats.completedOrders > 0 && (
-        <div className="card bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center shrink-0">
-              <Award className="w-8 h-8 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-amber-600 mb-1">🏆 Top Performer</p>
-              <p className="text-xl font-bold text-gray-900">{analytics.topPerformer.fullName}</p>
-              <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                <span className="flex items-center gap-1">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  {analytics.topPerformer.orderStats.completedOrders} Orders Completed
-                </span>
-                <span className="flex items-center gap-1">
-                  <DollarSign className="w-4 h-4 text-green-600" />
-                  ₹{analytics.topPerformer.orderStats.totalOrderValue.toLocaleString('en-IN')} Value
-                </span>
-                {(analytics.topPerformer.compensationType === 'commission' || analytics.topPerformer.compensationType === 'both') && (
+      {analytics?.topPerformer &&
+        analytics.topPerformer.orderStats.completedOrders > 0 && (
+          <div className="card bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center shrink-0">
+                <Award className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-600 mb-1">
+                  🏆 Top Performer
+                </p>
+                <p className="text-xl font-bold text-gray-900">
+                  {analytics.topPerformer.fullName}
+                </p>
+                <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                   <span className="flex items-center gap-1">
-                    <Target className="w-4 h-4 text-purple-600" />
-                    ₹{analytics.topPerformer.orderStats.totalCommission.toLocaleString('en-IN')} Commission
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    {analytics.topPerformer.orderStats.completedOrders} Orders
+                    Completed
                   </span>
-                )}
+                  <span className="flex items-center gap-1">
+                    <DollarSign className="w-4 h-4 text-green-600" />₹
+                    {analytics.topPerformer.orderStats.totalOrderValue.toLocaleString(
+                      "en-IN"
+                    )}{" "}
+                    Value
+                  </span>
+                  {(analytics.topPerformer.compensationType === "commission" ||
+                    analytics.topPerformer.compensationType === "both") && (
+                    <span className="flex items-center gap-1">
+                      <Target className="w-4 h-4 text-purple-600" />₹
+                      {analytics.topPerformer.orderStats.totalCommission.toLocaleString(
+                        "en-IN"
+                      )}{" "}
+                      Commission
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <button
+                  onClick={() => fetchStaffOrders(analytics.topPerformer!._id)}
+                  className="btn-secondary text-sm"
+                >
+                  View Details
+                </button>
               </div>
             </div>
-            <div className="text-right">
-              <button
-                onClick={() => fetchStaffOrders(analytics.topPerformer!._id)}
-                className="btn-secondary text-sm"
-              >
-                View Details
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Staff List - Desktop: Table, Mobile: Cards */}
       {/* Desktop Table */}
@@ -321,14 +410,21 @@ const StaffPage: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Staff</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Orders</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Sub-Tasks</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Value</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Compensation</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Commission</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Staff
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Orders
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Sub-Tasks
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -342,13 +438,21 @@ const StaffPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center shrink-0">
                         <span className="text-purple-600 font-bold text-xs">
-                          {member.fullName?.charAt(0) || 'S'}
+                          {member.fullName?.charAt(0) || "S"}
                         </span>
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="font-semibold text-gray-900 text-sm">{member.fullName}</p>
-                          <span className={`badge ${member.status === 'active' ? 'badge-completed' : 'badge-cancelled'} text-xs px-1.5 py-0.5`}>
+                          <p className="font-semibold text-gray-900 text-sm">
+                            {member.fullName}
+                          </p>
+                          <span
+                            className={`badge ${
+                              member.status === "active"
+                                ? "badge-completed"
+                                : "badge-cancelled"
+                            } text-xs px-1.5 py-0.5`}
+                          >
                             {member.status}
                           </span>
                         </div>
@@ -361,14 +465,16 @@ const StaffPage: React.FC = () => {
                   </td>
                   <td className="px-3 py-2">
                     <span className="badge badge-in-progress text-xs px-1.5 py-0.5">
-                      {member.role.replace('_', ' ').toUpperCase()}
+                      {member.role.replace("_", " ").toUpperCase()}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-center">
                     <div className="space-y-1">
                       <div className="flex items-center justify-center gap-1">
                         <Briefcase className="w-3.5 h-3.5 text-blue-600" />
-                        <span className="text-sm font-bold text-gray-900">{member.orderStats.totalOrders}</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {member.orderStats.totalOrders}
+                        </span>
                       </div>
                       <div className="flex items-center justify-center gap-2 text-xs">
                         <span className="flex items-center gap-0.5 text-green-600">
@@ -387,7 +493,9 @@ const StaffPage: React.FC = () => {
                       <div className="space-y-1">
                         <div className="flex items-center justify-center gap-1">
                           <Activity className="w-3.5 h-3.5 text-purple-600" />
-                          <span className="text-sm font-bold text-gray-900">{member.orderStats.totalSubTasks}</span>
+                          <span className="text-sm font-bold text-gray-900">
+                            {member.orderStats.totalSubTasks}
+                          </span>
                         </div>
                         <div className="flex items-center justify-center gap-2 text-xs">
                           <span className="flex items-center gap-0.5 text-green-600">
@@ -401,48 +509,15 @@ const StaffPage: React.FC = () => {
                         </div>
                         {member.orderStats.totalSubTaskCommission > 0 && (
                           <div className="text-xs text-green-600 font-medium">
-                            ₹{member.orderStats.totalSubTaskCommission.toLocaleString('en-IN')}
+                            ₹
+                            {member.orderStats.totalSubTaskCommission.toLocaleString(
+                              "en-IN"
+                            )}
                           </div>
                         )}
                       </div>
                     ) : (
                       <span className="text-xs text-gray-400">No tasks</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <TrendingUp className="w-3.5 h-3.5 text-purple-600" />
-                      <span className="text-sm font-semibold text-gray-900">
-                        ₹{member.orderStats.totalOrderValue.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="space-y-0.5">
-                      <span className="badge badge-pending text-xs px-1.5 py-0.5">
-                        {getCompensationBadge(member.compensationType)}
-                      </span>
-                      {(member.compensationType === 'fixed' || member.compensationType === 'both') && member.fixedSalary && (
-                        <p className="text-xs text-gray-500">₹{member.fixedSalary.toLocaleString('en-IN')}/mo</p>
-                      )}
-                      {member.commissionType === 'percentage' && member.commissionRate && (
-                        <p className="text-xs text-gray-500">{member.commissionRate}%</p>
-                      )}
-                      {member.commissionType === 'fixed_per_order' && member.fixedCommissionAmount && (
-                        <p className="text-xs text-gray-500">₹{member.fixedCommissionAmount}/order</p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    {(member.compensationType === 'commission' || member.compensationType === 'both') ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <DollarSign className="w-4 h-4 text-green-600" />
-                        <span className="text-sm font-bold text-green-600">
-                          ₹{member.orderStats.totalCommission.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-400">N/A</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-center">
@@ -477,7 +552,7 @@ const StaffPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center shrink-0">
                   <span className="text-purple-600 font-bold text-lg">
-                    {member.fullName?.charAt(0) || 'S'}
+                    {member.fullName?.charAt(0) || "S"}
                   </span>
                 </div>
                 <div>
@@ -488,7 +563,13 @@ const StaffPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <span className={`badge ${member.status === 'active' ? 'badge-completed' : 'badge-cancelled'} text-xs`}>
+              <span
+                className={`badge ${
+                  member.status === "active"
+                    ? "badge-completed"
+                    : "badge-cancelled"
+                } text-xs`}
+              >
                 {member.status}
               </span>
             </div>
@@ -496,7 +577,7 @@ const StaffPage: React.FC = () => {
             {/* Role */}
             <div className="mb-3">
               <span className="badge badge-in-progress text-xs">
-                {member.role.replace('_', ' ').toUpperCase()}
+                {member.role.replace("_", " ").toUpperCase()}
               </span>
             </div>
 
@@ -505,62 +586,48 @@ const StaffPage: React.FC = () => {
               <div className="bg-blue-50 rounded-lg p-2">
                 <div className="flex items-center gap-1 mb-1">
                   <Briefcase className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="text-xs text-blue-600 font-medium">Orders</span>
+                  <span className="text-xs text-blue-600 font-medium">
+                    Orders
+                  </span>
                 </div>
-                <p className="text-lg font-bold text-blue-900">{member.orderStats.totalOrders}</p>
+                <p className="text-lg font-bold text-blue-900">
+                  {member.orderStats.totalOrders}
+                </p>
                 <div className="flex items-center gap-2 text-xs mt-1">
-                  <span className="text-green-600">{member.orderStats.completedOrders} done</span>
-                  <span className="text-orange-600">{member.orderStats.pendingOrders} pending</span>
+                  <span className="text-green-600">
+                    {member.orderStats.completedOrders} done
+                  </span>
+                  <span className="text-orange-600">
+                    {member.orderStats.pendingOrders} pending
+                  </span>
                 </div>
               </div>
 
               <div className="bg-purple-50 rounded-lg p-2">
                 <div className="flex items-center gap-1 mb-1">
                   <Activity className="w-3.5 h-3.5 text-purple-600" />
-                  <span className="text-xs text-purple-600 font-medium">Sub-Tasks</span>
+                  <span className="text-xs text-purple-600 font-medium">
+                    Sub-Tasks
+                  </span>
                 </div>
-                <p className="text-lg font-bold text-purple-900">{member.orderStats.totalSubTasks}</p>
+                <p className="text-lg font-bold text-purple-900">
+                  {member.orderStats.totalSubTasks}
+                </p>
                 {member.orderStats.totalSubTasks > 0 && (
                   <div className="flex items-center gap-2 text-xs mt-1">
-                    <span className="text-green-600">{member.orderStats.completedSubTasks} done</span>
-                    <span className="text-orange-600">{member.orderStats.pendingSubTasks} pending</span>
+                    <span className="text-green-600">
+                      {member.orderStats.completedSubTasks} done
+                    </span>
+                    <span className="text-orange-600">
+                      {member.orderStats.pendingSubTasks} pending
+                    </span>
                   </div>
-                )}
-              </div>
-
-              <div className="bg-green-50 rounded-lg p-2">
-                <div className="flex items-center gap-1 mb-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-green-600" />
-                  <span className="text-xs text-green-600 font-medium">Value</span>
-                </div>
-                <p className="text-lg font-bold text-green-900">
-                  ₹{(member.orderStats.totalOrderValue / 1000).toFixed(1)}K
-                </p>
-              </div>
-
-              <div className="bg-orange-50 rounded-lg p-2">
-                <div className="flex items-center gap-1 mb-1">
-                  <DollarSign className="w-3.5 h-3.5 text-orange-600" />
-                  <span className="text-xs text-orange-600 font-medium">Commission</span>
-                </div>
-                {(member.compensationType === 'commission' || member.compensationType === 'both') ? (
-                  <p className="text-lg font-bold text-orange-900">
-                    ₹{(member.orderStats.totalCommission / 1000).toFixed(1)}K
-                  </p>
-                ) : (
-                  <p className="text-xs text-gray-400">N/A</p>
                 )}
               </div>
             </div>
 
-            {/* Compensation */}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Compensation</p>
-                <span className="badge badge-pending text-xs">
-                  {getCompensationBadge(member.compensationType)}
-                </span>
-              </div>
+            {/* Action Button */}
+            <div className="flex items-center justify-end pt-3 border-t border-gray-100">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -589,8 +656,12 @@ const StaffPage: React.FC = () => {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
-                <h2 className="text-2xl font-semibold text-gray-900">{selectedStaffMember?.fullName}'s Orders</h2>
-                <p className="text-gray-500 text-sm mt-1">{selectedStaffMember?.role.replace('_', ' ').toUpperCase()}</p>
+                <h2 className="text-2xl font-semibold text-gray-900">
+                  {selectedStaffMember?.fullName}'s Orders
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  {selectedStaffMember?.role.replace("_", " ").toUpperCase()}
+                </p>
               </div>
               <button
                 onClick={closeModal}
@@ -614,7 +685,9 @@ const StaffPage: React.FC = () => {
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-6 bg-gray-50 border-b border-gray-200">
                     <div className="bg-white rounded-lg p-4">
                       <p className="text-sm text-gray-500 mb-1">Orders</p>
-                      <p className="text-2xl font-bold text-gray-900">{ordersSummary.totalOrders}</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {ordersSummary.totalOrders}
+                      </p>
                     </div>
                     <div
                       onClick={() => handleViewAllSubTasks(selectedStaff!)}
@@ -624,24 +697,48 @@ const StaffPage: React.FC = () => {
                         Sub-Tasks
                         <Eye className="w-3.5 h-3.5 text-purple-600" />
                       </p>
-                      <p className="text-2xl font-bold text-purple-600">{ordersSummary.totalSubTasks || 0}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{ordersSummary.completedSubTasks || 0} done</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {ordersSummary.totalSubTasks || 0}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {ordersSummary.completedSubTasks || 0} done
+                      </p>
                     </div>
                     <div className="bg-white rounded-lg p-4">
                       <p className="text-sm text-gray-500 mb-1">Order Value</p>
-                      <p className="text-xl font-bold text-blue-600">₹{ordersSummary.totalOrderValue.toLocaleString('en-IN')}</p>
+                      <p className="text-xl font-bold text-blue-600">
+                        ₹{ordersSummary.totalOrderValue.toLocaleString("en-IN")}
+                      </p>
                     </div>
                     <div className="bg-white rounded-lg p-4">
-                      <p className="text-sm text-gray-500 mb-1">Order Commission</p>
-                      <p className="text-xl font-bold text-green-600">₹{ordersSummary.totalOrderCommission?.toLocaleString('en-IN') || 0}</p>
+                      <p className="text-sm text-gray-500 mb-1">
+                        Order Commission
+                      </p>
+                      <p className="text-xl font-bold text-green-600">
+                        ₹
+                        {ordersSummary.totalOrderCommission?.toLocaleString(
+                          "en-IN"
+                        ) || 0}
+                      </p>
                     </div>
                     <div className="bg-white rounded-lg p-4">
-                      <p className="text-sm text-gray-500 mb-1">Task Commission</p>
-                      <p className="text-xl font-bold text-orange-600">₹{ordersSummary.totalSubTaskCommission?.toLocaleString('en-IN') || 0}</p>
+                      <p className="text-sm text-gray-500 mb-1">
+                        Task Commission
+                      </p>
+                      <p className="text-xl font-bold text-orange-600">
+                        ₹
+                        {ordersSummary.totalSubTaskCommission?.toLocaleString(
+                          "en-IN"
+                        ) || 0}
+                      </p>
                     </div>
                     <div className="bg-white rounded-lg p-4">
-                      <p className="text-sm text-gray-500 mb-1">Total Commission</p>
-                      <p className="text-xl font-bold text-green-600">₹{ordersSummary.totalCommission.toLocaleString('en-IN')}</p>
+                      <p className="text-sm text-gray-500 mb-1">
+                        Total Commission
+                      </p>
+                      <p className="text-xl font-bold text-green-600">
+                        ₹{ordersSummary.totalCommission.toLocaleString("en-IN")}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -668,57 +765,93 @@ const StaffPage: React.FC = () => {
                       <tbody>
                         {staffOrders.map((order) => (
                           <React.Fragment key={order._id}>
-                            <tr className="hover:bg-purple-50 cursor-pointer" onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedOrder(order);
-                            }}>
+                            <tr
+                              className="hover:bg-purple-50 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedOrder(order);
+                              }}
+                            >
                               <td>
-                                <span className="font-semibold text-purple-600">{order.orderNumber}</span>
+                                <span className="font-semibold text-purple-600">
+                                  {order.voucherNo || order.orderNumber}
+                                </span>
                               </td>
                               <td>
                                 <div>
-                                  <p className="font-medium text-gray-900">{order.customer.name}</p>
-                                  <p className="text-sm text-gray-500">{order.customer.phone}</p>
+                                  <p className="font-medium text-gray-900">
+                                    {order.customer.name}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {order.customer.phone}
+                                  </p>
                                 </div>
                               </td>
                               <td>
                                 {order.device ? (
                                   <div>
-                                    <p className="font-medium text-gray-900">{order.device.deviceTypeName}</p>
+                                    <p className="font-medium text-gray-900">
+                                      {order.device.deviceTypeName}
+                                    </p>
                                     <p className="text-sm text-gray-500">
                                       {order.device.brand} {order.device.model}
                                     </p>
                                   </div>
                                 ) : (
-                                  <span className="text-gray-400 text-sm">Product Order</span>
+                                  <span className="text-gray-400 text-sm">
+                                    Product Order
+                                  </span>
                                 )}
                               </td>
                               <td>
                                 {order.stageName ? (
-                                  <span className={`badge ${getStageBadge(order.stageName)}`}>
+                                  <span
+                                    className={`badge ${getStageBadge(
+                                      order.stageName
+                                    )}`}
+                                  >
                                     {order.stageName}
                                   </span>
                                 ) : (
-                                  <span className="badge badge-pending">New</span>
+                                  <span className="badge badge-pending">
+                                    New
+                                  </span>
                                 )}
                               </td>
                               <td className="text-gray-600">
-                                {order.receivedDate ? format(new Date(order.receivedDate), 'dd/MM/yy') : 'N/A'}
+                                {order.receivedDate
+                                  ? format(
+                                      new Date(order.receivedDate),
+                                      "dd/MM/yy"
+                                    )
+                                  : "N/A"}
                               </td>
                               <td className="font-semibold text-gray-900">
-                                ₹{(order.finalCost || order.estimatedCost).toLocaleString('en-IN')}
+                                ₹
+                                {(
+                                  order.finalCost || order.estimatedCost
+                                ).toLocaleString("en-IN")}
                               </td>
                               <td className="font-bold text-blue-600">
-                                ₹{(order.orderCommission || 0).toLocaleString('en-IN')}
-                              </td>
-                              <td className="font-bold text-orange-600">
-                                ₹{(order.subTaskCommission || 0).toLocaleString('en-IN')}
-                                {order.subTasks && order.subTasks.length > 0 && (
-                                  <span className="text-xs text-gray-500 ml-1">({order.subTasks.length})</span>
+                                ₹
+                                {(order.orderCommission || 0).toLocaleString(
+                                  "en-IN"
                                 )}
                               </td>
+                              <td className="font-bold text-orange-600">
+                                ₹
+                                {(order.subTaskCommission || 0).toLocaleString(
+                                  "en-IN"
+                                )}
+                                {order.subTasks &&
+                                  order.subTasks.length > 0 && (
+                                    <span className="text-xs text-gray-500 ml-1">
+                                      ({order.subTasks.length})
+                                    </span>
+                                  )}
+                              </td>
                               <td className="font-bold text-green-600">
-                                ₹{order.commission.toLocaleString('en-IN')}
+                                ₹{order.commission.toLocaleString("en-IN")}
                               </td>
                               <td>
                                 <button
@@ -734,42 +867,54 @@ const StaffPage: React.FC = () => {
                               </td>
                             </tr>
                             {/* Sub-tasks rows */}
-                            {order.subTasks && order.subTasks.map((subTask) => (
-                              <tr
-                                key={subTask._id}
-                                className="bg-purple-25 hover:bg-purple-50 cursor-pointer border-l-4 border-purple-300"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedSubTask({ task: subTask, order });
-                                }}
-                              >
-                                <td colSpan={2} className="pl-8">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-purple-400">└─</span>
-                                    <span className="text-sm font-medium text-gray-700">{subTask.title}</span>
-                                  </div>
-                                </td>
-                                <td colSpan={2}>
-                                  <span className={`badge text-xs ${
-                                    subTask.status === 'completed' ? 'badge-completed' :
-                                    subTask.status === 'in_progress' ? 'badge-in-progress' :
-                                    'badge-pending'
-                                  }`}>
-                                    {subTask.status.replace('_', ' ')}
-                                  </span>
-                                </td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td className="font-bold text-orange-600">
-                                  ₹{subTask.amount.toLocaleString('en-IN')}
-                                </td>
-                                <td className="font-bold text-green-600">
-                                  ₹{subTask.amount.toLocaleString('en-IN')}
-                                </td>
-                                <td></td>
-                              </tr>
-                            ))}
+                            {order.subTasks &&
+                              order.subTasks.map((subTask) => (
+                                <tr
+                                  key={subTask._id}
+                                  className="bg-purple-25 hover:bg-purple-50 cursor-pointer border-l-4 border-purple-300"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedSubTask({
+                                      task: subTask,
+                                      order,
+                                    });
+                                  }}
+                                >
+                                  <td colSpan={2} className="pl-8">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-purple-400">
+                                        └─
+                                      </span>
+                                      <span className="text-sm font-medium text-gray-700">
+                                        {subTask.title}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td colSpan={2}>
+                                    <span
+                                      className={`badge text-xs ${
+                                        subTask.status === "completed"
+                                          ? "badge-completed"
+                                          : subTask.status === "in_progress"
+                                          ? "badge-in-progress"
+                                          : "badge-pending"
+                                      }`}
+                                    >
+                                      {subTask.status.replace("_", " ")}
+                                    </span>
+                                  </td>
+                                  <td></td>
+                                  <td></td>
+                                  <td></td>
+                                  <td className="font-bold text-orange-600">
+                                    ₹{subTask.amount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="font-bold text-green-600">
+                                    ₹{subTask.amount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td></td>
+                                </tr>
+                              ))}
                           </React.Fragment>
                         ))}
                       </tbody>
@@ -788,25 +933,41 @@ const StaffPage: React.FC = () => {
                           {/* Header */}
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <span className="font-bold text-purple-600 text-lg">{order.orderNumber}</span>
+                              <span className="font-bold text-purple-600 text-lg">
+                                {order.voucherNo || order.orderNumber}
+                              </span>
                               {order.stageName && (
-                                <span className={`badge ${getStageBadge(order.stageName)} text-xs ml-2`}>
+                                <span
+                                  className={`badge ${getStageBadge(
+                                    order.stageName
+                                  )} text-xs ml-2`}
+                                >
                                   {order.stageName}
                                 </span>
                               )}
                               <p className="text-sm text-gray-500 mt-1">
-                                {order.receivedDate ? format(new Date(order.receivedDate), 'dd/MM/yy') : 'N/A'}
+                                {order.receivedDate
+                                  ? format(
+                                      new Date(order.receivedDate),
+                                      "dd/MM/yy"
+                                    )
+                                  : "N/A"}
                               </p>
                             </div>
                           </div>
 
                           {/* Customer & Device */}
                           <div className="mb-3 space-y-1">
-                            <p className="font-semibold text-gray-900">{order.customer.name}</p>
-                            <p className="text-sm text-gray-500">{order.customer.phone}</p>
+                            <p className="font-semibold text-gray-900">
+                              {order.customer.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {order.customer.phone}
+                            </p>
                             {order.device && (
                               <p className="text-sm text-gray-600">
-                                {order.device.deviceTypeName} - {order.device.brand} {order.device.model}
+                                {order.device.deviceTypeName} -{" "}
+                                {order.device.brand} {order.device.model}
                               </p>
                             )}
                           </div>
@@ -814,15 +975,22 @@ const StaffPage: React.FC = () => {
                           {/* Stats */}
                           <div className="grid grid-cols-2 gap-2 mb-3">
                             <div className="bg-blue-50 rounded-lg p-2">
-                              <p className="text-xs text-blue-600 mb-0.5">Amount</p>
+                              <p className="text-xs text-blue-600 mb-0.5">
+                                Amount
+                              </p>
                               <p className="text-lg font-bold text-blue-900">
-                                ₹{(order.finalCost || order.estimatedCost).toLocaleString('en-IN')}
+                                ₹
+                                {(
+                                  order.finalCost || order.estimatedCost
+                                ).toLocaleString("en-IN")}
                               </p>
                             </div>
                             <div className="bg-green-50 rounded-lg p-2">
-                              <p className="text-xs text-green-600 mb-0.5">Total Commission</p>
+                              <p className="text-xs text-green-600 mb-0.5">
+                                Total Commission
+                              </p>
                               <p className="text-lg font-bold text-green-900">
-                                ₹{order.commission.toLocaleString('en-IN')}
+                                ₹{order.commission.toLocaleString("en-IN")}
                               </p>
                             </div>
                           </div>
@@ -831,13 +999,25 @@ const StaffPage: React.FC = () => {
                           <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
                             <div>
                               <span className="text-gray-500">Order: </span>
-                              <span className="font-bold text-blue-600">₹{(order.orderCommission || 0).toLocaleString('en-IN')}</span>
+                              <span className="font-bold text-blue-600">
+                                ₹
+                                {(order.orderCommission || 0).toLocaleString(
+                                  "en-IN"
+                                )}
+                              </span>
                             </div>
                             <div>
                               <span className="text-gray-500">Tasks: </span>
-                              <span className="font-bold text-orange-600">₹{(order.subTaskCommission || 0).toLocaleString('en-IN')}</span>
+                              <span className="font-bold text-orange-600">
+                                ₹
+                                {(order.subTaskCommission || 0).toLocaleString(
+                                  "en-IN"
+                                )}
+                              </span>
                               {order.subTasks && order.subTasks.length > 0 && (
-                                <span className="text-gray-400 ml-1">({order.subTasks.length})</span>
+                                <span className="text-gray-400 ml-1">
+                                  ({order.subTasks.length})
+                                </span>
                               )}
                             </div>
                           </div>
@@ -858,20 +1038,28 @@ const StaffPage: React.FC = () => {
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <span className="text-purple-400 text-xs">└─</span>
-                                      <p className="font-medium text-gray-900 text-sm">{subTask.title}</p>
+                                      <span className="text-purple-400 text-xs">
+                                        └─
+                                      </span>
+                                      <p className="font-medium text-gray-900 text-sm">
+                                        {subTask.title}
+                                      </p>
                                     </div>
-                                    <span className={`badge text-xs ${
-                                      subTask.status === 'completed' ? 'badge-completed' :
-                                      subTask.status === 'in_progress' ? 'badge-in-progress' :
-                                      'badge-pending'
-                                    }`}>
-                                      {subTask.status.replace('_', ' ')}
+                                    <span
+                                      className={`badge text-xs ${
+                                        subTask.status === "completed"
+                                          ? "badge-completed"
+                                          : subTask.status === "in_progress"
+                                          ? "badge-in-progress"
+                                          : "badge-pending"
+                                      }`}
+                                    >
+                                      {subTask.status.replace("_", " ")}
                                     </span>
                                   </div>
                                   <div className="text-right">
                                     <p className="text-sm font-bold text-orange-600">
-                                      ₹{subTask.amount.toLocaleString('en-IN')}
+                                      ₹{subTask.amount.toLocaleString("en-IN")}
                                     </p>
                                   </div>
                                 </div>
@@ -885,7 +1073,9 @@ const StaffPage: React.FC = () => {
 
                   {staffOrders.length === 0 && (
                     <div className="text-center py-12">
-                      <p className="text-gray-500">No orders assigned to this staff member</p>
+                      <p className="text-gray-500">
+                        No orders assigned to this staff member
+                      </p>
                     </div>
                   )}
                 </div>
@@ -902,8 +1092,12 @@ const StaffPage: React.FC = () => {
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Order Details</h3>
-                <p className="text-sm text-purple-600 font-semibold mt-0.5">{selectedOrder.orderNumber}</p>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Order Details
+                </h3>
+                <p className="text-sm text-purple-600 font-semibold mt-0.5">
+                  {selectedOrder.voucherNo || selectedOrder.orderNumber}
+                </p>
               </div>
               <button
                 onClick={() => setSelectedOrder(null)}
@@ -919,7 +1113,11 @@ const StaffPage: React.FC = () => {
               <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                 <div>
                   {selectedOrder.stageName ? (
-                    <span className={`badge ${getStageBadge(selectedOrder.stageName)}`}>
+                    <span
+                      className={`badge ${getStageBadge(
+                        selectedOrder.stageName
+                      )}`}
+                    >
                       {selectedOrder.stageName}
                     </span>
                   ) : (
@@ -927,18 +1125,29 @@ const StaffPage: React.FC = () => {
                   )}
                 </div>
                 <p className="text-sm text-gray-500">
-                  {selectedOrder.receivedDate ? format(new Date(selectedOrder.receivedDate), 'dd MMM yyyy') : 'N/A'}
+                  {selectedOrder.receivedDate
+                    ? format(
+                        new Date(selectedOrder.receivedDate),
+                        "dd MMM yyyy"
+                      )
+                    : "N/A"}
                 </p>
               </div>
 
               {/* Customer Info */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Customer</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  Customer
+                </p>
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="font-semibold text-gray-900">{selectedOrder.customer.name}</p>
+                  <p className="font-semibold text-gray-900">
+                    {selectedOrder.customer.name}
+                  </p>
                   <div className="flex items-center gap-1 mt-1">
                     <Phone className="w-3.5 h-3.5 text-gray-400" />
-                    <p className="text-sm text-gray-600">{selectedOrder.customer.phone}</p>
+                    <p className="text-sm text-gray-600">
+                      {selectedOrder.customer.phone}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -946,9 +1155,13 @@ const StaffPage: React.FC = () => {
               {/* Device Info */}
               {selectedOrder.device && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Device</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                    Device
+                  </p>
                   <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="font-semibold text-gray-900">{selectedOrder.device.deviceTypeName}</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedOrder.device.deviceTypeName}
+                    </p>
                     <p className="text-sm text-gray-600 mt-1">
                       {selectedOrder.device.brand} {selectedOrder.device.model}
                     </p>
@@ -958,18 +1171,25 @@ const StaffPage: React.FC = () => {
 
               {/* Amounts */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Pricing</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  Pricing
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-blue-50 rounded-lg p-3">
                     <p className="text-xs text-blue-600 mb-1">Order Amount</p>
                     <p className="text-xl font-bold text-blue-900">
-                      ₹{(selectedOrder.finalCost || selectedOrder.estimatedCost).toLocaleString('en-IN')}
+                      ₹
+                      {(
+                        selectedOrder.finalCost || selectedOrder.estimatedCost
+                      ).toLocaleString("en-IN")}
                     </p>
                   </div>
                   <div className="bg-green-50 rounded-lg p-3">
-                    <p className="text-xs text-green-600 mb-1">Total Commission</p>
+                    <p className="text-xs text-green-600 mb-1">
+                      Total Commission
+                    </p>
                     <p className="text-xl font-bold text-green-900">
-                      ₹{selectedOrder.commission.toLocaleString('en-IN')}
+                      ₹{selectedOrder.commission.toLocaleString("en-IN")}
                     </p>
                   </div>
                 </div>
@@ -977,29 +1197,42 @@ const StaffPage: React.FC = () => {
 
               {/* Commission Breakdown */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Commission Breakdown</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  Commission Breakdown
+                </p>
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Order Commission</span>
+                    <span className="text-sm text-gray-600">
+                      Order Commission
+                    </span>
                     <span className="font-bold text-blue-600">
-                      ₹{(selectedOrder.orderCommission || 0).toLocaleString('en-IN')}
+                      ₹
+                      {(selectedOrder.orderCommission || 0).toLocaleString(
+                        "en-IN"
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">
                       Task Commission
-                      {selectedOrder.subTasks && selectedOrder.subTasks.length > 0 && (
-                        <span className="text-xs text-gray-400 ml-1">({selectedOrder.subTasks.length} tasks)</span>
-                      )}
+                      {selectedOrder.subTasks &&
+                        selectedOrder.subTasks.length > 0 && (
+                          <span className="text-xs text-gray-400 ml-1">
+                            ({selectedOrder.subTasks.length} tasks)
+                          </span>
+                        )}
                     </span>
                     <span className="font-bold text-orange-600">
-                      ₹{(selectedOrder.subTaskCommission || 0).toLocaleString('en-IN')}
+                      ₹
+                      {(selectedOrder.subTaskCommission || 0).toLocaleString(
+                        "en-IN"
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                     <span className="font-medium text-gray-900">Total</span>
                     <span className="font-bold text-green-600 text-lg">
-                      ₹{selectedOrder.commission.toLocaleString('en-IN')}
+                      ₹{selectedOrder.commission.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -1008,27 +1241,40 @@ const StaffPage: React.FC = () => {
               {/* Sub-tasks */}
               {selectedOrder.subTasks && selectedOrder.subTasks.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Sub-Tasks</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                    Sub-Tasks
+                  </p>
                   <div className="space-y-2">
                     {selectedOrder.subTasks.map((subTask) => (
                       <div
                         key={subTask._id}
-                        onClick={() => setSelectedSubTask({ task: subTask, order: selectedOrder })}
+                        onClick={() =>
+                          setSelectedSubTask({
+                            task: subTask,
+                            order: selectedOrder,
+                          })
+                        }
                         className="bg-purple-50 rounded-lg p-3 hover:bg-purple-100 transition-colors cursor-pointer"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900 text-sm">{subTask.title}</p>
-                            <span className={`badge text-xs mt-1 ${
-                              subTask.status === 'completed' ? 'badge-completed' :
-                              subTask.status === 'in_progress' ? 'badge-in-progress' :
-                              'badge-pending'
-                            }`}>
-                              {subTask.status.replace('_', ' ')}
+                            <p className="font-medium text-gray-900 text-sm">
+                              {subTask.title}
+                            </p>
+                            <span
+                              className={`badge text-xs mt-1 ${
+                                subTask.status === "completed"
+                                  ? "badge-completed"
+                                  : subTask.status === "in_progress"
+                                  ? "badge-in-progress"
+                                  : "badge-pending"
+                              }`}
+                            >
+                              {subTask.status.replace("_", " ")}
                             </span>
                           </div>
                           <p className="font-bold text-orange-600">
-                            ₹{subTask.amount.toLocaleString('en-IN')}
+                            ₹{subTask.amount.toLocaleString("en-IN")}
                           </p>
                         </div>
                       </div>
@@ -1059,8 +1305,12 @@ const StaffPage: React.FC = () => {
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Sub-Task Details</h3>
-                <p className="text-sm text-gray-500 mt-0.5">Assigned to {selectedStaffMember?.fullName}</p>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Sub-Task Details
+                </h3>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Assigned to {selectedStaffMember?.fullName}
+                </p>
               </div>
               <button
                 onClick={() => setSelectedSubTask(null)}
@@ -1074,50 +1324,72 @@ const StaffPage: React.FC = () => {
             <div className="p-6 space-y-4">
               {/* Task Info */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Task</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  Task
+                </p>
                 <div className="bg-purple-50 rounded-lg p-4">
-                  <p className="font-bold text-gray-900 text-lg mb-2">{selectedSubTask.task.title}</p>
-                  <span className={`badge ${
-                    selectedSubTask.task.status === 'completed' ? 'badge-completed' :
-                    selectedSubTask.task.status === 'in_progress' ? 'badge-in-progress' :
-                    'badge-pending'
-                  }`}>
-                    {selectedSubTask.task.status.replace('_', ' ')}
+                  <p className="font-bold text-gray-900 text-lg mb-2">
+                    {selectedSubTask.task.title}
+                  </p>
+                  <span
+                    className={`badge ${
+                      selectedSubTask.task.status === "completed"
+                        ? "badge-completed"
+                        : selectedSubTask.task.status === "in_progress"
+                        ? "badge-in-progress"
+                        : "badge-pending"
+                    }`}
+                  >
+                    {selectedSubTask.task.status.replace("_", " ")}
                   </span>
                 </div>
               </div>
 
               {/* Commission */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Commission</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  Commission
+                </p>
                 <div className="bg-orange-50 rounded-lg p-4">
                   <p className="text-3xl font-bold text-orange-900">
-                    ₹{selectedSubTask.task.amount.toLocaleString('en-IN')}
+                    ₹{selectedSubTask.task.amount.toLocaleString("en-IN")}
                   </p>
                 </div>
               </div>
 
               {/* Associated Order */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Associated Order</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  Associated Order
+                </p>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Order Number</p>
-                    <p className="font-bold text-purple-600 text-lg">{selectedSubTask.order.orderNumber}</p>
+                    <p className="font-bold text-purple-600 text-lg">
+                      {selectedSubTask.order.voucherNo ||
+                        selectedSubTask.order.orderNumber}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Customer</p>
-                      <p className="font-medium text-gray-900">{selectedSubTask.order.customer.name}</p>
-                      <p className="text-xs text-gray-500">{selectedSubTask.order.customer.phone}</p>
+                      <p className="font-medium text-gray-900">
+                        {selectedSubTask.order.customer.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {selectedSubTask.order.customer.phone}
+                      </p>
                     </div>
                     {selectedSubTask.order.device && (
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Device</p>
-                        <p className="font-medium text-gray-900 text-sm">{selectedSubTask.order.device.deviceTypeName}</p>
+                        <p className="font-medium text-gray-900 text-sm">
+                          {selectedSubTask.order.device.deviceTypeName}
+                        </p>
                         <p className="text-xs text-gray-500">
-                          {selectedSubTask.order.device.brand} {selectedSubTask.order.device.model}
+                          {selectedSubTask.order.device.brand}{" "}
+                          {selectedSubTask.order.device.model}
                         </p>
                       </div>
                     )}
@@ -1125,9 +1397,14 @@ const StaffPage: React.FC = () => {
 
                   {selectedSubTask.order.receivedDate && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Received Date</p>
+                      <p className="text-xs text-gray-500 mb-1">
+                        Received Date
+                      </p>
                       <p className="text-sm text-gray-700">
-                        {format(new Date(selectedSubTask.order.receivedDate), 'dd MMM yyyy')}
+                        {format(
+                          new Date(selectedSubTask.order.receivedDate),
+                          "dd MMM yyyy"
+                        )}
                       </p>
                     </div>
                   )}
@@ -1135,7 +1412,11 @@ const StaffPage: React.FC = () => {
                   {selectedSubTask.order.stageName && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Order Status</p>
-                      <span className={`badge ${getStageBadge(selectedSubTask.order.stageName)}`}>
+                      <span
+                        className={`badge ${getStageBadge(
+                          selectedSubTask.order.stageName
+                        )}`}
+                      >
                         {selectedSubTask.order.stageName}
                       </span>
                     </div>
@@ -1155,7 +1436,9 @@ const StaffPage: React.FC = () => {
                   View Full Order Details
                 </button>
                 <button
-                  onClick={() => navigate(`/orders/${selectedSubTask.order._id}`)}
+                  onClick={() =>
+                    navigate(`/orders/${selectedSubTask.order._id}`)
+                  }
                   className="w-full btn-primary flex items-center justify-center gap-2"
                 >
                   <Eye className="w-4 h-4" />
@@ -1174,9 +1457,12 @@ const StaffPage: React.FC = () => {
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">All Sub-Tasks</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  All Sub-Tasks
+                </h3>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  {selectedStaffMember?.fullName} • {allSubTasks.length} total tasks
+                  {selectedStaffMember?.fullName} • {allSubTasks.length} total
+                  tasks
                 </p>
               </div>
               <button
@@ -1192,7 +1478,9 @@ const StaffPage: React.FC = () => {
               {allSubTasks.length === 0 ? (
                 <div className="text-center py-12">
                   <Activity className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 font-medium">No sub-tasks assigned</p>
+                  <p className="text-gray-500 font-medium">
+                    No sub-tasks assigned
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1208,18 +1496,24 @@ const StaffPage: React.FC = () => {
                       {/* Task Header */}
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h4 className="font-bold text-gray-900 mb-1">{task.title}</h4>
-                          <span className={`badge text-xs ${
-                            task.status === 'completed' ? 'badge-completed' :
-                            task.status === 'in_progress' ? 'badge-in-progress' :
-                            'badge-pending'
-                          }`}>
-                            {task.status.replace('_', ' ')}
+                          <h4 className="font-bold text-gray-900 mb-1">
+                            {task.title}
+                          </h4>
+                          <span
+                            className={`badge text-xs ${
+                              task.status === "completed"
+                                ? "badge-completed"
+                                : task.status === "in_progress"
+                                ? "badge-in-progress"
+                                : "badge-pending"
+                            }`}
+                          >
+                            {task.status.replace("_", " ")}
                           </span>
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-bold text-orange-600">
-                            ₹{task.amount.toLocaleString('en-IN')}
+                            ₹{task.amount.toLocaleString("en-IN")}
                           </p>
                           <p className="text-xs text-gray-500">Commission</p>
                         </div>
@@ -1228,20 +1522,30 @@ const StaffPage: React.FC = () => {
                       {/* Order Info */}
                       <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                         <div>
-                          <p className="text-xs text-gray-500">Associated Order</p>
-                          <p className="font-semibold text-purple-600">{order.orderNumber}</p>
+                          <p className="text-xs text-gray-500">
+                            Associated Order
+                          </p>
+                          <p className="font-semibold text-purple-600">
+                            {order.voucherNo || order.orderNumber}
+                          </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <p className="text-xs text-gray-500">Customer</p>
-                            <p className="font-medium text-gray-900 text-sm">{order.customer.name}</p>
-                            <p className="text-xs text-gray-500">{order.customer.phone}</p>
+                            <p className="font-medium text-gray-900 text-sm">
+                              {order.customer.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {order.customer.phone}
+                            </p>
                           </div>
                           {order.device && (
                             <div>
                               <p className="text-xs text-gray-500">Device</p>
-                              <p className="font-medium text-gray-900 text-sm">{order.device.deviceTypeName}</p>
+                              <p className="font-medium text-gray-900 text-sm">
+                                {order.device.deviceTypeName}
+                              </p>
                               <p className="text-xs text-gray-500">
                                 {order.device.brand} {order.device.model}
                               </p>
@@ -1252,14 +1556,23 @@ const StaffPage: React.FC = () => {
                         <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                           {order.receivedDate && (
                             <div>
-                              <p className="text-xs text-gray-500">Assigned Date</p>
+                              <p className="text-xs text-gray-500">
+                                Assigned Date
+                              </p>
                               <p className="text-xs text-gray-700 font-medium">
-                                {format(new Date(order.receivedDate), 'dd MMM yyyy')}
+                                {format(
+                                  new Date(order.receivedDate),
+                                  "dd MMM yyyy"
+                                )}
                               </p>
                             </div>
                           )}
                           {order.stageName && (
-                            <span className={`badge text-xs ${getStageBadge(order.stageName)}`}>
+                            <span
+                              className={`badge text-xs ${getStageBadge(
+                                order.stageName
+                              )}`}
+                            >
                               {order.stageName}
                             </span>
                           )}

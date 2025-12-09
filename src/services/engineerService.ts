@@ -46,11 +46,16 @@ export interface EngineerTask {
   };
   title: string;
   description?: string;
+  taskType?: string;
+  taskTypeName?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked' | 'on_hold';
   progress: number;
+  outcome?: 'completed' | 'returned' | 'parts_ordered' | 'replaced' | 'repaired' | 'cancelled' | 'other';
+  outcomeNotes?: string;
   assignedAt: string;
   startedAt?: string;
   completedAt?: string;
+  dueDate?: string;
   amount?: number;
   isPaid: boolean;
   partsUsed?: Array<{

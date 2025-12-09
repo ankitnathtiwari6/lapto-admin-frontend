@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Clock, AlertCircle, CheckCircle, Plus, Edit, User as UserIcon, FileText } from 'lucide-react';
 import type { SubTask, CreateSubTaskData, User } from '../types';
+import type { TaskType } from '../services/taskTypeService';
 import subTaskService from '../services/subTaskService';
+import taskTypeService from '../services/taskTypeService';
+import SubTaskForm from './SubTaskForm';
 
 interface WorkAssignmentPipelineProps {
   orderId: string;
@@ -25,32 +28,29 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [subTaskForm, setSubTaskForm] = useState<CreateSubTaskData>({
-    title: '',
-    assignedTo: '',
-    amount: undefined,
-    isPaid: true,
-  });
+  const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [editForm, setEditForm] = useState<Partial<SubTask>>({});
   const [creating, setCreating] = useState(false);
 
-  const handleCreateSubTask = async () => {
-    if (!subTaskForm.title || !subTaskForm.assignedTo) {
-      alert('Please enter work description and assign to an engineer');
-      return;
-    }
+  // Fetch task types
+  useEffect(() => {
+    const fetchTaskTypes = async () => {
+      try {
+        const response = await taskTypeService.getAll({ isActive: true });
+        setTaskTypes(response.data.data || []);
+      } catch (error) {
+        console.error('Error fetching task types:', error);
+      }
+    };
+    fetchTaskTypes();
+  }, []);
 
+  const handleCreateSubTask = async (formData: CreateSubTaskData) => {
     setCreating(true);
     try {
-      await subTaskService.create(orderId, subTaskForm);
+      await subTaskService.create(orderId, formData);
       alert('Work assigned successfully!');
       setShowAddForm(false);
-      setSubTaskForm({
-        title: '',
-        assignedTo: '',
-        amount: undefined,
-        isPaid: true,
-      });
       onUpdate();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Error assigning work');
@@ -73,13 +73,26 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
     setEditingTaskId(task._id);
     setEditForm({
       title: task.title,
-      amount: task.amount,
+      taskType: task.taskType,
+      startDate: task.startDate,
+      dueDate: task.dueDate,
+      outcome: task.outcome,
+      outcomeNotes: task.outcomeNotes,
     });
   };
 
   const handleUpdateTask = async (taskId: string) => {
     try {
-      await subTaskService.update(taskId, editForm);
+      // Convert Date objects to strings for the API
+      const updateData: any = { ...editForm };
+      if (updateData.startDate instanceof Date) {
+        updateData.startDate = updateData.startDate.toISOString().split('T')[0];
+      }
+      if (updateData.dueDate instanceof Date) {
+        updateData.dueDate = updateData.dueDate.toISOString().split('T')[0];
+      }
+
+      await subTaskService.update(taskId, updateData);
       alert('Work details updated!');
       setEditingTaskId(null);
       setEditForm({});
@@ -200,53 +213,13 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
 
       {/* Add Form */}
       {showAddForm && (
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg space-y-3">
-          <h4 className="text-sm font-semibold text-gray-900">Assign New Work</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Work Description *</label>
-              <input
-                type="text"
-                value={subTaskForm.title}
-                onChange={(e) => setSubTaskForm({ ...subTaskForm, title: e.target.value })}
-                className="input-field"
-                placeholder="e.g., Motherboard Repair, Screen Replacement"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Assign To Engineer *</label>
-              <select
-                value={subTaskForm.assignedTo}
-                onChange={(e) => setSubTaskForm({ ...subTaskForm, assignedTo: e.target.value })}
-                className="input-field"
-              >
-                <option value="">Select Engineer</option>
-                {users.map((user) => (
-                  <option key={user._id} value={user._id}>
-                    {user.fullName} ({user.role})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Commission (₹)</label>
-              <input
-                type="number"
-                value={subTaskForm.amount || ''}
-                onChange={(e) => setSubTaskForm({ ...subTaskForm, amount: parseFloat(e.target.value) || undefined })}
-                className="input-field"
-                placeholder="Amount"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={handleCreateSubTask} disabled={creating} className="btn-primary flex-1">
-              {creating ? 'Assigning...' : 'Assign Work'}
-            </button>
-            <button onClick={() => setShowAddForm(false)} className="btn-secondary">Cancel</button>
-          </div>
-        </div>
+        <SubTaskForm
+          users={users}
+          onSubmit={handleCreateSubTask}
+          onCancel={() => setShowAddForm(false)}
+          isLoading={creating}
+          title="Assign New Work"
+        />
       )}
 
       {/* Pipeline Visualization */}
@@ -300,19 +273,59 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-3 min-w-min">
               {subTasks.map((task) => (
-                <div key={task._id} className="flex-shrink-0" style={{ width: '200px' }}>
+                <div key={task._id} className="flex-shrink-0" style={{ width: '240px' }}>
                   {editingTaskId === task._id ? (
-                    <div className="border-2 border-purple-400 rounded-lg p-3 bg-purple-50 h-full">
+                    <div className="border-2 border-purple-400 rounded-lg p-3 bg-purple-50 h-full space-y-2">
                       <div className="flex items-center gap-1 mb-2">
                         <Edit className="w-3 h-3 text-purple-600" />
-                        <p className="text-xs font-semibold text-gray-900">Edit</p>
+                        <p className="text-xs font-semibold text-gray-900">Edit Task</p>
                       </div>
                       <input
                         type="text"
                         value={editForm.title || ''}
                         onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                        className="input-field text-sm mb-2"
+                        className="input-field text-xs"
                         placeholder="Work title"
+                      />
+                      <select
+                        value={editForm.taskType || ''}
+                        onChange={(e) => setEditForm({ ...editForm, taskType: e.target.value || undefined })}
+                        className="input-field text-xs"
+                      >
+                        <option value="">Task Type</option>
+                        {taskTypes.map((type) => (
+                          <option key={type._id} value={type._id}>
+                            {type.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={editForm.outcome || ''}
+                        onChange={(e) => setEditForm({ ...editForm, outcome: e.target.value as any })}
+                        className="input-field text-xs"
+                      >
+                        <option value="">Outcome</option>
+                        <option value="completed">Completed</option>
+                        <option value="returned">Returned</option>
+                        <option value="parts_ordered">Parts Ordered</option>
+                        <option value="replaced">Replaced</option>
+                        <option value="repaired">Repaired</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <input
+                        type="date"
+                        value={editForm.startDate?.toString().split('T')[0] || ''}
+                        onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value ? new Date(e.target.value) : undefined })}
+                        className="input-field text-xs"
+                        placeholder="Start Date"
+                      />
+                      <input
+                        type="date"
+                        value={editForm.dueDate?.toString().split('T')[0] || ''}
+                        onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value ? new Date(e.target.value) : undefined })}
+                        className="input-field text-xs"
+                        placeholder="Due Date"
                       />
                       <div className="flex gap-1">
                         <button
@@ -362,17 +375,57 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                       </div>
 
                       {/* Title */}
-                      <h5 className="font-bold text-sm text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]">
+                      <h5 className="font-bold text-sm text-gray-900 mb-2 line-clamp-2">
                         {task.title}
                       </h5>
 
+                      {/* Task Type */}
+                      {task.taskTypeName && (
+                        <div className="mb-2">
+                          <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                            {task.taskTypeName}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Engineer */}
-                      <div className="flex items-center gap-1 mb-3 pb-2 border-b border-gray-200">
+                      <div className="flex items-center gap-1 mb-2 pb-2 border-b border-gray-200">
                         <UserIcon className="w-3 h-3 text-purple-600" />
                         <p className="text-xs text-gray-700 font-medium truncate">
                           {task.assignedToName}
                         </p>
                       </div>
+
+                      {/* Dates */}
+                      {(task.startDate || task.dueDate) && (
+                        <div className="mb-2 space-y-1 text-xs">
+                          {task.startDate && (
+                            <div className="text-gray-600">
+                              <span className="font-medium">Start:</span> {new Date(task.startDate).toLocaleDateString()}
+                            </div>
+                          )}
+                          {task.dueDate && (
+                            <div className="text-gray-600">
+                              <span className="font-medium">Due:</span> {new Date(task.dueDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Outcome */}
+                      {task.outcome && (
+                        <div className="mb-2">
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                            task.outcome === 'completed' ? 'bg-green-100 text-green-700' :
+                            task.outcome === 'returned' ? 'bg-red-100 text-red-700' :
+                            task.outcome === 'repaired' ? 'bg-blue-100 text-blue-700' :
+                            task.outcome === 'replaced' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {task.outcome.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Actions */}
                       <div onClick={(e) => e.stopPropagation()}>

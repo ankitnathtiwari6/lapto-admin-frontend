@@ -16,7 +16,12 @@ const UsersPage: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data } = await api.get('/users');
+      // Fetch staff from the current company - auth middleware filters by company automatically
+      const { data } = await api.get('/staff', {
+        params: {
+          limit: 1000 // Get all staff members
+        }
+      });
       setUsers(data.data);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -30,7 +35,7 @@ const UsersPage: React.FC = () => {
       return;
     }
     try {
-      await api.delete(`/users/${userId}`);
+      await api.delete(`/staff/${userId}`);
       await fetchUsers();
       alert('User deleted successfully!');
     } catch (error: any) {

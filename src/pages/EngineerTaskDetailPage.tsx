@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import engineerService, { type EngineerTask } from '../services/engineerService';
+import outcomeTypeService from '../services/outcomeTypeService';
+import type { OutcomeType } from '../services/outcomeTypeService';
+import subTaskService from '../services/subTaskService';
 import {
   ArrowLeft,
   Smartphone,
@@ -11,7 +14,8 @@ import {
   CheckSquare,
   Calendar,
   Wrench,
-  Plus
+  Plus,
+  Edit2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
@@ -25,12 +29,30 @@ const EngineerTaskDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+  const [outcomeTypes, setOutcomeTypes] = useState<OutcomeType[]>([]);
+  const [showOutcomeModal, setShowOutcomeModal] = useState(false);
+  const [outcomeForm, setOutcomeForm] = useState({
+    outcome: '',
+    outcomeNotes: '',
+    dueDate: ''
+  });
+  const [savingOutcome, setSavingOutcome] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchTask();
     }
+    fetchOutcomeTypes();
   }, [id]);
+
+  const fetchOutcomeTypes = async () => {
+    try {
+      const response = await outcomeTypeService.getAll({ isActive: true });
+      setOutcomeTypes(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching outcome types:', error);
+    }
+  };
 
   const fetchTask = async () => {
     try {
@@ -71,6 +93,35 @@ const EngineerTaskDetailPage: React.FC = () => {
       fetchTask();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Error completing task');
+    }
+  };
+
+  const handleOpenOutcomeModal = () => {
+    setOutcomeForm({
+      outcome: task?.outcome || '',
+      outcomeNotes: task?.outcomeNotes || '',
+      dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
+    });
+    setShowOutcomeModal(true);
+  };
+
+  const handleSaveOutcome = async () => {
+    if (!task) return;
+
+    setSavingOutcome(true);
+    try {
+      await subTaskService.update(task._id, {
+        outcome: outcomeForm.outcome || undefined,
+        outcomeNotes: outcomeForm.outcomeNotes || undefined,
+        dueDate: outcomeForm.dueDate || undefined
+      });
+      alert('Task details updated successfully!');
+      setShowOutcomeModal(false);
+      fetchTask();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Error updating task');
+    } finally {
+      setSavingOutcome(false);
     }
   };
 
@@ -360,6 +411,47 @@ const EngineerTaskDetailPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Task Details Card */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-gray-900">Task Details</h3>
+              <button
+                onClick={handleOpenOutcomeModal}
+                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                title="Edit task details"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {task.dueDate && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Due Date</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {format(new Date(task.dueDate), 'MMM dd, yyyy')}
+                  </p>
+                </div>
+              )}
+              {task.outcome && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Outcome</p>
+                  <span className="badge badge-in-progress text-xs">
+                    {task.outcome.replace('_', ' ').toUpperCase()}
+                  </span>
+                </div>
+              )}
+              {task.outcomeNotes && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Outcome Notes</p>
+                  <p className="text-sm text-gray-700">{task.outcomeNotes}</p>
+                </div>
+              )}
+              {!task.dueDate && !task.outcome && !task.outcomeNotes && (
+                <p className="text-sm text-gray-500 italic">No task details set</p>
+              )}
+            </div>
+          </div>
+
           {/* Timeline Card */}
           <div className="card">
             <h3 className="text-base font-semibold text-gray-900 mb-4">Timeline</h3>
@@ -486,6 +578,113 @@ const EngineerTaskDetailPage: React.FC = () => {
         }}
         prefilledOrderId={task.orderId._id}
       />
+
+      {/* Outcome & Details Modal */}
+      {showOutcomeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Update Task Details
+              </h3>
+              <button
+                onClick={() => setShowOutcomeModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <span className="text-2xl leading-none">&times;</span>
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  value={outcomeForm.dueDate}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, dueDate: e.target.value })}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Outcome
+                </label>
+                <select
+                  value={outcomeForm.outcome}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, outcome: e.target.value })}
+                  className="input-field"
+                >
+                  <option value="">Select outcome...</option>
+                  {outcomeTypes.map((type) => (
+                    <option key={type._id} value={type.name.toLowerCase().replace(/\s+/g, '_')}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Outcome Notes
+                </label>
+                <textarea
+                  value={outcomeForm.outcomeNotes}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, outcomeNotes: e.target.value })}
+                  className="input-field resize-none"
+                  rows={4}
+                  placeholder="Add any notes about the outcome..."
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowOutcomeModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveOutcome}
+                  disabled={savingOutcome}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2"
+                >
+                  {savingOutcome ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

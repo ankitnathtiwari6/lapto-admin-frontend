@@ -64,6 +64,11 @@ export interface UpdateSubTaskData {
     quantity: number;
     cost: number;
   }>;
+  taskType?: string;
+  startDate?: string;
+  dueDate?: string;
+  outcome?: string;
+  outcomeNotes?: string;
 }
 
 export interface SubTaskStats {
