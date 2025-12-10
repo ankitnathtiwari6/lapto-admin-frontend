@@ -233,7 +233,7 @@ const EngineerTaskDetailPage: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Order Number</p>
-                <p className="font-semibold text-purple-600 text-lg">{task.orderId.orderNumber}</p>
+                <p className="font-semibold text-purple-600 text-lg">{task.orderId.voucherNo}</p>
               </div>
               {task.orderId.problemDescription && (
                 <div>
@@ -529,7 +529,7 @@ const EngineerTaskDetailPage: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Complete Task?</h3>
-                <p className="text-sm text-gray-500">Order: {task.orderId.orderNumber}</p>
+                <p className="text-sm text-gray-500">Order: {task.orderId.voucherNo}</p>
               </div>
             </div>
 

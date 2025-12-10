@@ -16,6 +16,7 @@ export interface EngineerTask {
   orderId: {
     _id: string;
     orderNumber: string;
+    voucherNo: string;
     device?: {
       deviceTypeName: string;
       brand: string;
@@ -87,6 +88,7 @@ export interface AssignedTask {
   orderId: {
     _id: string;
     orderNumber: string;
+    voucherNo: string;
   };
   engineerId: {
     _id: string;

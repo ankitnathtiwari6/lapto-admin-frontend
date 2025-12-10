@@ -100,7 +100,7 @@ const AssignedTasksStatus: React.FC = () => {
                   </div>
                   <div className="text-xs space-y-0.5">
                     <p className="text-gray-600">
-                      <span className="font-medium">Order:</span> {task.orderId.orderNumber}
+                      <span className="font-medium">Order:</span> {task.orderId.voucherNo}
                     </p>
                     <p className="text-gray-600">
                       <span className="font-medium">Engineer:</span> {task.engineerId.fullName}
