@@ -1,181 +1,90 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
 import { deviceTypeService } from "../services/deviceTypeService";
 import { serviceTypeService } from "../services/serviceTypeService";
 import { orderService } from "../services/orderService";
 import { userService } from "../services/userService";
 import { customerService } from "../services/customerService";
-import { aiService } from "../services/aiService";
-import { productService, type Product } from "../services/productService";
 import type { CreateOrderData } from "../services/orderService";
 import type { DeviceType, ServiceType, User } from "../types";
 import type { Customer } from "../services/customerService";
-import { Plus, ArrowLeft, X, Sparkles } from "lucide-react";
+import { Plus, ArrowLeft, X, Trash2 } from "lucide-react";
 import CustomerCreateModal from "../components/CustomerCreateModal";
-import OrderItemsSection from "../components/OrderItemsSection";
+import BulkImportPanel from "../components/BulkImportPanel";
 
-interface FormData {
-  voucherNo?: string;
+interface OrderRow {
+  id: string;
+  customer: Customer | null;
+  customerSearchQuery: string;
+  showCustomerDropdown: boolean;
+  services: Array<{
+    serviceType: ServiceType;
+    quantity: number;
+  }>;
+  serviceSearchQuery: string;
+  showServiceDropdown: boolean;
   deviceTypeId: string;
   brand: string;
   model: string;
-  serialNumber?: string;
-  password?: string;
+  serialNumber: string;
+  password: string;
   problemDescription: string;
-  priority: "low" | "medium" | "high" | "urgent";
-  estimatedCost?: number;
-  advancePayment?: number;
+  engineerId: string;
 }
 
 const NewOrderPage: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<FormData>({
-    defaultValues: {
-      priority: "medium",
-    },
-  });
 
+  const [activeTab, setActiveTab] = useState<"manual" | "bulk">("manual");
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [engineers, setEngineers] = useState<User[]>([]);
-  const [selectedEngineerId, setSelectedEngineerId] = useState<string>("");
-  const [selectedDeviceType, setSelectedDeviceType] =
-    useState<DeviceType | null>(null);
-  const [selectedServices, setSelectedServices] = useState<
-    Array<{
-      serviceTypeId: string;
-      serviceTypeName: string;
-      description?: string;
-      quantity: number;
-      unitPrice: number;
-      discount: number;
-      taxRate: number;
-      estimatedCost: number;
-      isCustom?: boolean;
-    }>
-  >([]);
-  const [customServiceName, setCustomServiceName] = useState("");
-  const [customServicePrice, setCustomServicePrice] = useState<number>(0);
-  const [additionalDiscount, setAdditionalDiscount] = useState<number>(0);
-  const [paidAmount, setPaidAmount] = useState<number>(0);
-  const [taxRate] = useState<number>(18);
-  const [loading, setLoading] = useState(false);
+  const [savingRows, setSavingRows] = useState<{ [rowId: string]: boolean }>(
+    {}
+  );
   const [fetchingData, setFetchingData] = useState(true);
 
-  // New state for AI features
-  const [jobDetails, setJobDetails] = useState("");
-  const [generatingAI, setGeneratingAI] = useState(false);
-  const [aiGeneratedCustomerInfo, setAiGeneratedCustomerInfo] = useState<{
-    name?: string;
-    phone?: string;
-    email?: string;
-    address?: string;
-  } | null>(null);
+  // Orders data - array of rows
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([
+    createEmptyOrderRow(),
+  ]);
 
-  // Customer search state
-  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
-  const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>(
-    []
-  );
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null
-  );
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-  const [searchingCustomers, setSearchingCustomers] = useState(false);
+  // Customer suggestions per row
+  const [customerSuggestions, setCustomerSuggestions] = useState<{
+    [rowId: string]: Customer[];
+  }>({});
 
-  // Order type state
-  const [orderType, setOrderType] = useState<"service" | "product" | "mixed">(
-    "service"
-  );
-
-  // Product order state
-  const [productSearchQuery, setProductSearchQuery] = useState("");
-  const [productSuggestions, setProductSuggestions] = useState<Product[]>([]);
-  const [showProductDropdown, setShowProductDropdown] = useState(false);
-  const [searchingProducts, setSearchingProducts] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState<
-    Array<{
-      productId: string;
-      productName: string;
-      sku?: string;
-      description?: string;
-      quantity: number;
-      unitPrice: number;
-      discount: number;
-      taxRate: number;
-    }>
-  >([]);
+  // Service suggestions per row
+  const [serviceSuggestions, setServiceSuggestions] = useState<{
+    [rowId: string]: ServiceType[];
+  }>({});
 
   // Customer creation modal state
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-
-  const deviceTypeId = watch("deviceTypeId");
+  const [activeRowId, setActiveRowId] = useState<string>("");
 
   useEffect(() => {
     fetchInitialData();
   }, []);
 
-  useEffect(() => {
-    if (deviceTypeId) {
-      const device = deviceTypes.find((d) => d._id === deviceTypeId);
-      setSelectedDeviceType(device || null);
-    }
-  }, [deviceTypeId, deviceTypes]);
-
-  // Customer search with debounce
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (customerSearchQuery.length >= 2) {
-        setSearchingCustomers(true);
-        try {
-          const response = await customerService.search(customerSearchQuery);
-          setCustomerSuggestions(response.data || []);
-          setShowCustomerDropdown(true);
-        } catch (error) {
-          console.error("Error searching customers:", error);
-          setCustomerSuggestions([]);
-        } finally {
-          setSearchingCustomers(false);
-        }
-      } else {
-        setCustomerSuggestions([]);
-        setShowCustomerDropdown(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [customerSearchQuery]);
-
-  // Product search with debounce
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (productSearchQuery.length >= 2) {
-        setSearchingProducts(true);
-        try {
-          const response = await productService.search(productSearchQuery);
-          setProductSuggestions(response.data || []);
-          setShowProductDropdown(true);
-        } catch (error) {
-          console.error("Error searching products:", error);
-          setProductSuggestions([]);
-        } finally {
-          setSearchingProducts(false);
-        }
-      } else {
-        setProductSuggestions([]);
-        setShowProductDropdown(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [productSearchQuery]);
+  function createEmptyOrderRow(): OrderRow {
+    return {
+      id: `row-${Date.now()}-${Math.random()}`,
+      customer: null,
+      customerSearchQuery: "",
+      showCustomerDropdown: false,
+      services: [],
+      serviceSearchQuery: "",
+      showServiceDropdown: false,
+      deviceTypeId: "",
+      brand: "",
+      model: "",
+      serialNumber: "",
+      password: "",
+      problemDescription: "",
+      engineerId: "",
+    };
+  }
 
   const fetchInitialData = async () => {
     try {
@@ -194,359 +103,255 @@ const NewOrderPage: React.FC = () => {
     }
   };
 
-  const handleCustomerSelect = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setCustomerSearchQuery(customer.fullName);
-    setShowCustomerDropdown(false);
+  const addNewOrderRow = () => {
+    setOrderRows((prevRows) => [...prevRows, createEmptyOrderRow()]);
   };
 
-  const handleCustomerSearchChange = (value: string) => {
-    setCustomerSearchQuery(value);
-    if (!value) {
-      setSelectedCustomer(null);
+  const removeOrderRow = (rowId: string) => {
+    setOrderRows((prevRows) => {
+      if (prevRows.length === 1) {
+        alert("You must have at least one order row");
+        return prevRows;
+      }
+      return prevRows.filter((row) => row.id !== rowId);
+    });
+  };
+
+  const updateOrderRow = (rowId: string, updates: Partial<OrderRow>) => {
+    setOrderRows((prevRows) =>
+      prevRows.map((row) => (row.id === rowId ? { ...row, ...updates } : row))
+    );
+  };
+
+  // Customer search with debounce
+  const handleCustomerSearch = async (rowId: string, query: string) => {
+    updateOrderRow(rowId, {
+      customerSearchQuery: query,
+      customer: null,
+      showCustomerDropdown: true,
+    });
+
+    if (query.length >= 2) {
+      try {
+        const response = await customerService.search(query);
+        setCustomerSuggestions((prev) => ({
+          ...prev,
+          [rowId]: response.data || [],
+        }));
+      } catch (error) {
+        console.error("Error searching customers:", error);
+        setCustomerSuggestions((prev) => ({ ...prev, [rowId]: [] }));
+      }
+    } else {
+      setCustomerSuggestions((prev) => ({ ...prev, [rowId]: [] }));
     }
   };
 
-  const handleGenerateWithAI = async () => {
-    if (!jobDetails.trim()) {
-      alert("Please enter job details to generate order");
+  const handleCustomerSelect = (rowId: string, customer: Customer) => {
+    updateOrderRow(rowId, {
+      customer,
+      customerSearchQuery: customer.fullName,
+      showCustomerDropdown: false,
+    });
+  };
+
+  const handleServiceSearch = (rowId: string, query: string) => {
+    updateOrderRow(rowId, {
+      serviceSearchQuery: query,
+      showServiceDropdown: false,
+    });
+
+    if (query.length >= 1) {
+      const filtered = serviceTypes.filter((st) =>
+        st.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setServiceSuggestions((prev) => ({ ...prev, [rowId]: filtered }));
+      updateOrderRow(rowId, { showServiceDropdown: true });
+    } else {
+      setServiceSuggestions((prev) => ({ ...prev, [rowId]: [] }));
+    }
+  };
+
+  const handleServiceSelect = (rowId: string, serviceType: ServiceType) => {
+    setOrderRows((prevRows) => {
+      const row = prevRows.find((r) => r.id === rowId);
+      if (!row) return prevRows;
+
+      // Check if service already added
+      if (row.services.find((s) => s.serviceType._id === serviceType._id)) {
+        alert("This service is already added");
+        return prevRows;
+      }
+
+      return prevRows.map((r) =>
+        r.id === rowId
+          ? {
+              ...r,
+              services: [...r.services, { serviceType, quantity: 1 }],
+              serviceSearchQuery: "",
+              showServiceDropdown: false,
+            }
+          : r
+      );
+    });
+  };
+
+  const removeService = (rowId: string, serviceTypeId: string) => {
+    setOrderRows((prevRows) =>
+      prevRows.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              services: row.services.filter(
+                (s) => s.serviceType._id !== serviceTypeId
+              ),
+            }
+          : row
+      )
+    );
+  };
+
+  const updateServiceQuantity = (
+    rowId: string,
+    serviceTypeId: string,
+    quantity: number
+  ) => {
+    setOrderRows((prevRows) =>
+      prevRows.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              services: row.services.map((s) =>
+                s.serviceType._id === serviceTypeId ? { ...s, quantity } : s
+              ),
+            }
+          : row
+      )
+    );
+  };
+
+  const handleBulkImport = async (parsedData: any[]) => {
+    // Convert parsed data to OrderRow format
+    const newOrderRows: OrderRow[] = parsedData.map((data) => ({
+      ...createEmptyOrderRow(),
+      customerSearchQuery: data.customerName,
+      model: data.model,
+      problemDescription: data.description,
+      serviceSearchQuery: data.problem,
+    }));
+
+    // Replace current order rows with imported ones
+    setOrderRows(newOrderRows);
+
+    // Switch to manual tab
+    setActiveTab("manual");
+
+    // Trigger customer search for each row after state has been updated
+    setTimeout(() => {
+      newOrderRows.forEach((row) => {
+        if (row.customerSearchQuery) {
+          handleCustomerSearch(row.id, row.customerSearchQuery);
+        }
+        // Also trigger service search to show suggestions
+        if (row.serviceSearchQuery) {
+          handleServiceSearch(row.id, row.serviceSearchQuery);
+        }
+      });
+    }, 300);
+  };
+
+  const handleSaveRow = async (rowId: string) => {
+    // Get the current row state
+    let currentRow: OrderRow | undefined;
+    setOrderRows((prevRows) => {
+      currentRow = prevRows.find((r) => r.id === rowId);
+      return prevRows;
+    });
+
+    if (!currentRow) return;
+
+    const row = currentRow; // For TypeScript to recognize it's defined
+
+    // Validate row
+    if (!row.customer) {
+      alert("Please select a customer");
+      return;
+    }
+    if (row.services.length === 0) {
+      alert("Please add at least one service");
+      return;
+    }
+    if (!row.deviceTypeId) {
+      alert("Please select a device type");
+      return;
+    }
+    if (!row.model) {
+      alert("Please enter device model");
+      return;
+    }
+    if (!row.problemDescription) {
+      alert("Please enter problem description");
       return;
     }
 
-    setGeneratingAI(true);
+    setSavingRows((prev) => ({ ...prev, [rowId]: true }));
     try {
-      const response = await aiService.generateOrder(jobDetails);
-      const generatedData = response.data;
-
-      if (!generatedData) {
-        throw new Error("Failed to generate order details.");
-      }
-
-      // Store AI-generated customer info for modal prefill
-      if (generatedData.customerInfo) {
-        setAiGeneratedCustomerInfo({
-          name: generatedData.customerInfo.name || "",
-          phone: generatedData.customerInfo.phone || "",
-          email: generatedData.customerInfo.email || "",
-          address: generatedData.customerInfo.address || "",
-        });
-
-        // Try to find existing customer by phone or name
-        if (generatedData.customerInfo.name) {
-          setCustomerSearchQuery(generatedData.customerInfo.name);
-        } else if (generatedData.customerInfo.phone) {
-          setCustomerSearchQuery(generatedData.customerInfo.phone);
-        }
-      }
-
-      // Fill device info
-      if (generatedData.device.deviceTypeId) {
-        setValue("deviceTypeId", generatedData.device.deviceTypeId);
-      }
-      if (generatedData.device.brand) {
-        setValue("brand", generatedData.device.brand);
-      }
-      if (generatedData.device.model) {
-        setValue("model", generatedData.device.model);
-      }
-      if (generatedData.device.serialNumber) {
-        setValue("serialNumber", generatedData.device.serialNumber);
-      }
-
-      // Fill problem description
-      if (generatedData.problemDescription) {
-        setValue("problemDescription", generatedData.problemDescription);
-      }
-
-      // Fill priority
-      if (generatedData.priority) {
-        setValue("priority", generatedData.priority);
-      }
-
-      // Fill services
-      if (generatedData.services && generatedData.services.length > 0) {
-        setSelectedServices(generatedData.services);
-      }
-
-      alert(
-        "Order details generated successfully! You can now review and edit before creating."
-      );
-    } catch (error: any) {
-      alert(
-        error.response?.data?.message ||
-          "Failed to generate order. Please try again."
-      );
-    } finally {
-      setGeneratingAI(false);
-    }
-  };
-
-  const addService = (serviceType: ServiceType) => {
-    if (!selectedServices.find((s) => s.serviceTypeId === serviceType._id)) {
-      setSelectedServices([
-        ...selectedServices,
-        {
-          serviceTypeId: serviceType._id,
-          serviceTypeName: serviceType.name,
-          description: serviceType.description,
-          quantity: 1,
+      const deviceType = deviceTypes.find((d) => d._id === row.deviceTypeId);
+      const orderData: CreateOrderData = {
+        orderType: "service",
+        customer: {
+          customerId: row.customer._id,
+          name: row.customer.fullName,
+          phone: row.customer.phone,
+          email: row.customer.email,
+          address: row.customer.customerDetails?.address,
+        },
+        device: {
+          deviceTypeId: row.deviceTypeId,
+          deviceTypeName: deviceType?.name || "",
+          brand: row.brand,
+          model: row.model,
+          attributes: {},
+          serialNumber: row.serialNumber,
+          password: row.password,
+        },
+        problemDescription: row.problemDescription,
+        customerComplaints: [row.problemDescription],
+        priority: "medium",
+        services: row.services.map((s) => ({
+          serviceTypeId: s.serviceType._id,
+          serviceTypeName: s.serviceType.name,
+          description: s.serviceType.description,
+          quantity: s.quantity,
           unitPrice: 0,
           discount: 0,
           taxRate: 18,
           estimatedCost: 0,
-        },
-      ]);
-    }
-  };
-
-  const addCustomService = () => {
-    if (!customServiceName.trim()) {
-      alert("Please enter a service name");
-      return;
-    }
-    const customId = `custom-${Date.now()}`;
-    setSelectedServices([
-      ...selectedServices,
-      {
-        serviceTypeId: customId,
-        serviceTypeName: customServiceName,
-        description: "",
-        quantity: 1,
-        unitPrice: customServicePrice,
+        })),
+        engineerId: row.engineerId || undefined,
         discount: 0,
         taxRate: 18,
-        estimatedCost: customServicePrice,
-        isCustom: true,
-      },
-    ]);
-    setCustomServiceName("");
-    setCustomServicePrice(0);
-  };
-
-  const updateServiceField = (
-    serviceTypeId: string,
-    field: string,
-    value: any
-  ) => {
-    setSelectedServices(
-      selectedServices.map((s) =>
-        s.serviceTypeId === serviceTypeId ? { ...s, [field]: value } : s
-      )
-    );
-  };
-
-  const removeService = (serviceTypeId: string) => {
-    setSelectedServices(
-      selectedServices.filter((s) => s.serviceTypeId !== serviceTypeId)
-    );
-  };
-
-  // Product handlers
-  const addProduct = (product: Product) => {
-    console.log(product, "product");
-    if (!selectedProducts.find((p) => p.productId === product._id)) {
-      setSelectedProducts([
-        ...selectedProducts,
-        {
-          productId: product._id,
-          productName: product.name,
-          sku: product.sku,
-          description: product.description,
-          quantity: 1,
-          unitPrice: product.unitPrice,
-          discount: 0,
-          taxRate: product.taxRate,
-        },
-      ]);
-      setProductSearchQuery("");
-      setShowProductDropdown(false);
-    }
-  };
-
-  const addCustomProduct = (name: string, price: number, sku?: string) => {
-    const customId = `custom-product-${Date.now()}`;
-    setSelectedProducts([
-      ...selectedProducts,
-      {
-        productId: customId,
-        productName: name,
-        sku: sku,
-        description: "",
-        quantity: 1,
-        unitPrice: price,
-        discount: 0,
-        taxRate: 18,
-      },
-    ]);
-  };
-
-  const updateProductField = (productId: string, field: string, value: any) => {
-    setSelectedProducts(
-      selectedProducts.map((p) =>
-        p.productId === productId ? { ...p, [field]: value } : p
-      )
-    );
-  };
-
-  const removeProduct = (productId: string) => {
-    setSelectedProducts(
-      selectedProducts.filter((p) => p.productId !== productId)
-    );
-  };
-
-  // Calculate invoice amounts
-  const calculateInvoiceAmounts = () => {
-    // Subtotal from all services and products combined
-    const serviceSubtotal = selectedServices.reduce(
-      (sum, s) => sum + s.quantity * s.unitPrice,
-      0
-    );
-    const productSubtotal = selectedProducts.reduce(
-      (sum, p) => sum + p.quantity * p.unitPrice,
-      0
-    );
-    const subtotal = serviceSubtotal + productSubtotal;
-
-    // Total item-level discounts from both services and products
-    const serviceDiscounts = selectedServices.reduce(
-      (sum, s) => sum + s.discount,
-      0
-    );
-    const productDiscounts = selectedProducts.reduce(
-      (sum, p) => sum + p.discount,
-      0
-    );
-    const itemDiscounts = serviceDiscounts + productDiscounts;
-
-    // Total discount (item + additional)
-    const totalDiscount = itemDiscounts + additionalDiscount;
-
-    // Taxable amount after discount
-    const taxableAmount = subtotal - totalDiscount;
-
-    // Calculate GST (CGST + SGST for intra-state)
-    const cgst = (taxableAmount * (taxRate / 2)) / 100;
-    const sgst = (taxableAmount * (taxRate / 2)) / 100;
-    const totalTax = cgst + sgst;
-
-    // Total amount before rounding
-    const totalAmount = taxableAmount + totalTax;
-
-    // Round off to nearest rupee
-    const finalAmount = Math.round(totalAmount);
-    const roundOff = finalAmount - totalAmount;
-
-    // Balance calculation
-    const balance = finalAmount - paidAmount;
-
-    return {
-      subtotal,
-      totalDiscount,
-      taxableAmount,
-      cgst,
-      sgst,
-      totalTax,
-      totalAmount,
-      roundOff,
-      finalAmount,
-      balance,
-    };
-  };
-
-  const invoiceAmounts = calculateInvoiceAmounts();
-
-  const onSubmit = async (formData: FormData) => {
-    // Validate customer selection
-    if (!selectedCustomer) {
-      alert(
-        "Please select a customer. If the customer doesn't exist, create one first."
-      );
-      return;
-    }
-
-    // Validate order items - at least one service or product is required
-    if (selectedServices.length === 0 && selectedProducts.length === 0) {
-      alert("Please add at least one service or product to the order.");
-      return;
-    }
-
-    // Determine actual order type based on what's added
-    let actualOrderType: "service" | "product" | "mixed" = orderType;
-    if (selectedServices.length > 0 && selectedProducts.length > 0) {
-      actualOrderType = "mixed";
-    } else if (selectedServices.length > 0) {
-      actualOrderType = "service";
-    } else if (selectedProducts.length > 0) {
-      actualOrderType = "product";
-    }
-
-    setLoading(true);
-    try {
-      const orderData: CreateOrderData = {
-        orderType: actualOrderType,
-        voucherNo: formData.voucherNo,
-        customer: {
-          customerId: selectedCustomer._id,
-          name: selectedCustomer.fullName,
-          phone: selectedCustomer.phone,
-          email: selectedCustomer.email,
-          address: selectedCustomer.customerDetails?.address,
-        },
-        priority: formData.priority,
-        discount: additionalDiscount,
-        taxRate: taxRate,
-        paidAmount: paidAmount,
-        estimatedCost: invoiceAmounts.finalAmount || 0,
-        advancePayment: paidAmount,
+        paidAmount: 0,
+        estimatedCost: 0,
+        advancePayment: 0,
       } as any;
-
-      // Add service-specific fields if services are present
-      if (selectedServices.length > 0) {
-        // Only add device info if device type is selected
-        if (formData.deviceTypeId) {
-          const deviceType = deviceTypes.find(
-            (d) => d._id === formData.deviceTypeId
-          );
-          orderData.device = {
-            deviceTypeId: formData.deviceTypeId,
-            deviceTypeName: deviceType?.name || "",
-            brand: formData.brand,
-            model: formData.model,
-            attributes: {},
-            serialNumber: formData.serialNumber,
-            password: formData.password,
-          };
-        }
-        if (formData.problemDescription) {
-          orderData.problemDescription = formData.problemDescription;
-          orderData.customerComplaints = [formData.problemDescription];
-        }
-        orderData.services = selectedServices;
-        orderData.engineerId = selectedEngineerId || undefined;
-      }
-
-      // Add product-specific fields if products are present
-      if (selectedProducts.length > 0) {
-        orderData.products = selectedProducts;
-      }
 
       const response = await orderService.create(orderData);
       const responseData: any = response.data;
       const order = responseData?.order || responseData;
-      const invoice = responseData?.invoice;
 
-      alert(
-        `Order created successfully!\nOrder Number: ${
-          order.orderNumber
-        }\nInvoice Number: ${invoice?.invoiceNumber || "N/A"}`
-      );
+      alert(`Order created successfully!\nOrder Number: ${order.orderNumber}`);
 
-      // Navigate to order detail page
-      navigate(`/orders/${order._id}`);
+      // Remove the saved row
+      setOrderRows((prevRows) => {
+        const filteredRows = prevRows.filter((r) => r.id !== rowId);
+        // If no rows left, add a new empty row
+        return filteredRows.length === 0 ? [createEmptyOrderRow()] : filteredRows;
+      });
     } catch (error: any) {
       alert(error.response?.data?.message || "Error creating order");
     } finally {
-      setLoading(false);
+      setSavingRows((prev) => ({ ...prev, [rowId]: false }));
     }
   };
 
@@ -562,9 +367,9 @@ const NewOrderPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => navigate("/orders")}
           className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
@@ -572,591 +377,760 @@ const NewOrderPage: React.FC = () => {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">New Order</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            New Service Orders
+          </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Create a new repair order
+            Add multiple orders in spreadsheet style or bulk import from Google Sheets
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Order Type Selection */}
-        <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">
-            Order Type
-          </h2>
-          <div className="grid grid-cols-3 gap-4">
+      {/* Tabs */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
             <button
-              type="button"
-              onClick={() => setOrderType("service")}
-              className={`p-4 border-2 rounded-lg transition-all ${
-                orderType === "service"
-                  ? "border-purple-600 bg-purple-50 text-purple-900"
-                  : "border-gray-300 bg-white text-gray-700 hover:border-purple-300"
-              }`}
+              onClick={() => setActiveTab("manual")}
+              className={`${
+                activeTab === "manual"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
-              <div className="font-semibold">Service Order</div>
-              <div className="text-sm mt-1 opacity-75">
-                Device repair & services
-              </div>
+              Manual Entry
             </button>
             <button
-              type="button"
-              onClick={() => setOrderType("product")}
-              className={`p-4 border-2 rounded-lg transition-all ${
-                orderType === "product"
-                  ? "border-purple-600 bg-purple-50 text-purple-900"
-                  : "border-gray-300 bg-white text-gray-700 hover:border-purple-300"
-              }`}
+              onClick={() => setActiveTab("bulk")}
+              className={`${
+                activeTab === "bulk"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
-              <div className="font-semibold">Product Order</div>
-              <div className="text-sm mt-1 opacity-75">Product sales</div>
+              Bulk Import
             </button>
-            <button
-              type="button"
-              onClick={() => setOrderType("mixed")}
-              className={`p-4 border-2 rounded-lg transition-all ${
-                orderType === "mixed"
-                  ? "border-purple-600 bg-purple-50 text-purple-900"
-                  : "border-gray-300 bg-white text-gray-700 hover:border-purple-300"
-              }`}
-            >
-              <div className="font-semibold">Mixed Order</div>
-              <div className="text-sm mt-1 opacity-75">Services + Products</div>
-            </button>
-          </div>
+          </nav>
         </div>
+      </div>
 
-        {/* Voucher Number */}
-        <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">
-            Voucher Number
-          </h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Voucher No. (Optional)
-            </label>
-            <input
-              {...register("voucherNo")}
-              className="input-field"
-              placeholder="Enter voucher number if applicable"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Optional reference number for this order
-            </p>
-          </div>
-        </div>
+      {/* Manual Entry Tab */}
+      {activeTab === "manual" && (
+        <>
+          {/* Desktop Table View - Hidden on mobile */}
+          <div className="hidden lg:block rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-50 border-b-2 border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 w-12">
+                  #
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[220px]">
+                  Customer *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[280px]">
+                  Services *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">
+                  Device Type *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
+                  Brand
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
+                  Model *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[240px]">
+                  Problem *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">
+                  Engineer
+                </th>
+                <th className="px-2 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {orderRows.map((row, index) => (
+                <tr key={row.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 border-r border-gray-200 text-sm text-gray-600 text-center font-medium">
+                    {index + 1}
+                  </td>
 
-        {/* AI Job Details Card - Available for all order types */}
-        <div className="card bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            <h2 className="text-base font-semibold text-gray-900">
-              AI-Powered Order Generation
-            </h2>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Job Details
-              </label>
-              <textarea
-                value={jobDetails}
-                onChange={(e) => setJobDetails(e.target.value)}
-                className="input-field resize-none"
-                rows={4}
-                placeholder={
-                  orderType === "service"
-                    ? "Example: Customer John Doe called, his iPhone 13 Pro screen is cracked and battery drains fast. Phone: 9876543210. Need urgent repair."
-                    : orderType === "product"
-                    ? "Example: Customer Jane Smith wants to buy 2 iPhone cases and 1 screen protector. Phone: 9876543210."
-                    : "Example: Customer needs iPhone screen repair and wants to buy a protective case. Phone: 9876543210."
-                }
-              />
-              <p className="text-xs text-gray-600 mt-1">
-                Describe the order in natural language. Include customer info,
-                {orderType === "service" && " device details, problems,"}
-                {orderType === "product" && " product details,"}
-                {orderType === "mixed" && " device/product details,"} and any
-                other relevant information. AI will auto-fill the form below.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleGenerateWithAI}
-              disabled={generatingAI || !jobDetails.trim()}
-              className="btn-primary flex items-center gap-2"
-            >
-              {generatingAI ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
+                  {/* Customer Cell */}
+                  <td className="px-4 py-3 border-r border-gray-200 relative">
+                    {row.customer ? (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-md text-sm font-medium">
+                          {row.customer.fullName}
+                          <button
+                            onClick={() =>
+                              updateOrderRow(row.id, {
+                                customer: null,
+                                customerSearchQuery: "",
+                              })
+                            }
+                            className="hover:text-purple-900"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={row.customerSearchQuery}
+                          onChange={(e) =>
+                            handleCustomerSearch(row.id, e.target.value)
+                          }
+                          onFocus={() => {
+                            updateOrderRow(row.id, {
+                              showCustomerDropdown: true,
+                            });
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              updateOrderRow(row.id, {
+                                showCustomerDropdown: false,
+                              });
+                            }, 200);
+                          }}
+                          placeholder="Search customer..."
+                          className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                        {row.showCustomerDropdown && (
+                          <div className="absolute z-50 w-72 mt-1 bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                            {row.customerSearchQuery.length >= 2 ? (
+                              customerSuggestions[row.id]?.length > 0 ? (
+                                customerSuggestions[row.id].map((customer) => (
+                                  <button
+                                    key={customer._id}
+                                    type="button"
+                                    onClick={() =>
+                                      handleCustomerSelect(row.id, customer)
+                                    }
+                                    className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b"
+                                  >
+                                    <div className="font-medium text-sm text-gray-900">
+                                      {customer.fullName}
+                                    </div>
+                                    <div className="text-xs text-gray-600 mt-0.5">
+                                      {customer.phone}
+                                    </div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-4 py-3 text-sm text-gray-500">
+                                  No customers found
+                                </div>
+                              )
+                            ) : (
+                              <div className="px-4 py-3 text-sm text-gray-500">
+                                Type at least 2 characters to search
+                              </div>
+                            )}
+                            <button
+                              onClick={() => {
+                                setActiveRowId(row.id);
+                                setShowCustomerModal(true);
+                                updateOrderRow(row.id, {
+                                  showCustomerDropdown: false,
+                                });
+                              }}
+                              className="w-full px-4 py-3 text-left hover:bg-purple-50 text-purple-600 font-medium text-sm border-t border-gray-200"
+                            >
+                              + New Customer
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </td>
+
+                  {/* Services Cell */}
+                  <td className="px-4 py-3 border-r border-gray-200 relative">
+                    <div className="space-y-1.5">
+                      {row.services.map((service) => (
+                        <div
+                          key={service.serviceType._id}
+                          className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-md text-sm"
+                        >
+                          <span className="flex-1 font-medium text-blue-900">
+                            {service.serviceType.name}
+                          </span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={service.quantity}
+                            onChange={(e) =>
+                              updateServiceQuantity(
+                                row.id,
+                                service.serviceType._id,
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            className="w-14 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                          />
+                          <button
+                            onClick={() =>
+                              removeService(row.id, service.serviceType._id)
+                            }
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      <input
+                        type="text"
+                        value={row.serviceSearchQuery}
+                        onChange={(e) =>
+                          handleServiceSearch(row.id, e.target.value)
+                        }
+                        onFocus={() => {
+                          if (serviceSuggestions[row.id]?.length > 0) {
+                            updateOrderRow(row.id, {
+                              showServiceDropdown: true,
+                            });
+                          }
+                        }}
+                        placeholder="Add service..."
+                        className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      {row.showServiceDropdown &&
+                        serviceSuggestions[row.id]?.length > 0 && (
+                          <div className="absolute z-50 w-72 mt-1 bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+                            {serviceSuggestions[row.id].map((serviceType) => (
+                              <button
+                                key={serviceType._id}
+                                type="button"
+                                onClick={() =>
+                                  handleServiceSelect(row.id, serviceType)
+                                }
+                                className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b last:border-b-0"
+                              >
+                                <div className="font-medium text-sm text-gray-900">
+                                  {serviceType.name}
+                                </div>
+                                {serviceType.description && (
+                                  <div className="text-xs text-gray-600 mt-0.5">
+                                    {serviceType.description}
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                  </td>
+
+                  {/* Device Type Cell */}
+                  <td className="px-4 py-3 border-r border-gray-200">
+                    <select
+                      value={row.deviceTypeId}
+                      onChange={(e) =>
+                        updateOrderRow(row.id, { deviceTypeId: e.target.value })
+                      }
+                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="">Select device...</option>
+                      {deviceTypes.map((dt) => (
+                        <option key={dt._id} value={dt._id}>
+                          {dt.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+
+                  {/* Brand Cell */}
+                  <td className="px-4 py-3 border-r border-gray-200">
+                    <input
+                      type="text"
+                      value={row.brand}
+                      onChange={(e) =>
+                        updateOrderRow(row.id, { brand: e.target.value })
+                      }
+                      placeholder="Enter brand..."
+                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  </td>
+
+                  {/* Model Cell */}
+                  <td className="px-4 py-3 border-r border-gray-200">
+                    <input
+                      type="text"
+                      value={row.model}
+                      onChange={(e) =>
+                        updateOrderRow(row.id, { model: e.target.value })
+                      }
+                      placeholder="Enter model..."
+                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
-                  </svg>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Generate Order with AI
-                </>
-              )}
-            </button>
-          </div>
+                  </td>
+
+                  {/* Problem Cell - Made resizable */}
+                  <td className="px-4 py-3 border-r border-gray-200">
+                    <textarea
+                      value={row.problemDescription}
+                      onChange={(e) =>
+                        updateOrderRow(row.id, {
+                          problemDescription: e.target.value,
+                        })
+                      }
+                      placeholder="Describe the problem..."
+                      rows={2}
+                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                    />
+                  </td>
+
+                  {/* Engineer Cell */}
+                  <td className="px-4 py-3 border-r border-gray-200">
+                    <select
+                      value={row.engineerId}
+                      onChange={(e) =>
+                        updateOrderRow(row.id, { engineerId: e.target.value })
+                      }
+                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="">Assign later...</option>
+                      {engineers.map((eng) => (
+                        <option key={eng._id} value={eng._id}>
+                          {eng.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+
+                  {/* Actions Cell */}
+                  <td className="px-2 py-2 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => handleSaveRow(row.id)}
+                        disabled={savingRows[row.id]}
+                        className="px-2.5 py-1.5 text-sm font-medium text-green-600 hover:text-green-800 hover:bg-green-50 rounded disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                        title="Save order"
+                      >
+                        {savingRows[row.id] ? (
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
+                        ) : (
+                          "Save"
+                        )}
+                      </button>
+                      <button
+                        onClick={() => removeOrderRow(row.id)}
+                        disabled={orderRows.length === 1}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                        title="Delete row"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        {/* Customer Selection Card */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-gray-900">
-              Select Customer
-            </h2>
-            <button
-              type="button"
-              onClick={() => setShowCustomerModal(true)}
-              className="btn-primary flex items-center gap-2 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              New Customer
-            </button>
-          </div>
+        {/* Add Row Button */}
+        <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-center">
+          <button
+            onClick={addNewOrderRow}
+            className="flex items-center gap-2 text-purple-600 hover:text-purple-800 text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Add New Order Row
+          </button>
+        </div>
+      </div>
 
-          {/* Customer Search/Select */}
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search Customer *
-            </label>
-            <input
-              type="text"
-              value={customerSearchQuery}
-              onChange={(e) => handleCustomerSearchChange(e.target.value)}
-              onFocus={() =>
-                customerSuggestions.length > 0 && setShowCustomerDropdown(true)
-              }
-              className="input-field"
-              placeholder="Search by name, phone, or email..."
-            />
-
-            {/* Customer Suggestions Dropdown */}
-            {showCustomerDropdown && customerSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {customerSuggestions.map((customer) => (
+      {/* Mobile Card View - Hidden on desktop */}
+      <div className="lg:hidden space-y-4">
+        {orderRows.map((row, index) => (
+          <div
+            key={row.id}
+            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+          >
+            {/* Card Header */}
+            <div className="bg-purple-600 text-white px-4 py-3 flex items-center justify-between">
+              <h3 className="font-semibold">Order #{index + 1}</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleSaveRow(row.id)}
+                  disabled={savingRows[row.id]}
+                  className="px-4 py-2 bg-white text-purple-600 rounded-lg font-medium disabled:opacity-50"
+                  title="Save order"
+                >
+                  {savingRows[row.id] ? (
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  ) : (
+                    "Save"
+                  )}
+                </button>
+                {orderRows.length > 1 && (
                   <button
-                    key={customer._id}
-                    type="button"
-                    onClick={() => handleCustomerSelect(customer)}
-                    className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b last:border-b-0 transition-colors"
+                    onClick={() => removeOrderRow(row.id)}
+                    className="p-2 bg-white text-red-600 rounded-full"
+                    title="Delete order"
                   >
-                    <div className="font-medium text-gray-900">
-                      {customer.fullName}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {customer.phone}
-                    </div>
-                    {customer.email && (
-                      <div className="text-xs text-gray-500">
-                        {customer.email}
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-4 space-y-4">
+              {/* Customer */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Customer *
+                </label>
+                {row.customer ? (
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-md text-sm font-medium">
+                      {row.customer.fullName}
+                    </span>
+                    <button
+                      onClick={() =>
+                        updateOrderRow(row.id, {
+                          customer: null,
+                          customerSearchQuery: "",
+                        })
+                      }
+                      className="p-2 text-purple-600 hover:text-purple-800"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={row.customerSearchQuery}
+                      onChange={(e) =>
+                        handleCustomerSearch(row.id, e.target.value)
+                      }
+                      onFocus={() => {
+                        updateOrderRow(row.id, {
+                          showCustomerDropdown: true,
+                        });
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => {
+                          updateOrderRow(row.id, {
+                            showCustomerDropdown: false,
+                          });
+                        }, 200);
+                      }}
+                      placeholder="Search customer..."
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    {row.showCustomerDropdown && (
+                      <div className="relative z-50 mt-2 bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                        {row.customerSearchQuery.length >= 2 ? (
+                          customerSuggestions[row.id]?.length > 0 ? (
+                            customerSuggestions[row.id].map((customer) => (
+                              <button
+                                key={customer._id}
+                                type="button"
+                                onClick={() =>
+                                  handleCustomerSelect(row.id, customer)
+                                }
+                                className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b"
+                              >
+                                <div className="font-medium text-base text-gray-900">
+                                  {customer.fullName}
+                                </div>
+                                <div className="text-sm text-gray-600 mt-1">
+                                  {customer.phone}
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-base text-gray-500">
+                              No customers found
+                            </div>
+                          )
+                        ) : (
+                          <div className="px-4 py-3 text-base text-gray-500">
+                            Type at least 2 characters to search
+                          </div>
+                        )}
+                        <button
+                          onClick={() => {
+                            setActiveRowId(row.id);
+                            setShowCustomerModal(true);
+                            updateOrderRow(row.id, {
+                              showCustomerDropdown: false,
+                            });
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-purple-50 text-purple-600 font-medium text-base border-t border-gray-200"
+                        >
+                          + New Customer
+                        </button>
                       </div>
                     )}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {searchingCustomers && (
-              <div className="absolute right-3 top-11 text-gray-400">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              </div>
-            )}
-
-            {customerSearchQuery &&
-              customerSuggestions.length === 0 &&
-              !searchingCustomers && (
-                <p className="text-sm text-gray-500 mt-2">
-                  No customers found. Click "New Customer" to create one.
-                </p>
-              )}
-          </div>
-
-          {/* Selected Customer Display */}
-          {selectedCustomer && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-green-800">
-                    Selected Customer
-                  </p>
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm text-gray-900 font-semibold">
-                      {selectedCustomer.fullName}
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      Phone: {selectedCustomer.phone}
-                    </p>
-                    {selectedCustomer.email && (
-                      <p className="text-sm text-gray-700">
-                        Email: {selectedCustomer.email}
-                      </p>
-                    )}
-                    {selectedCustomer.customerDetails?.address && (
-                      <p className="text-sm text-gray-700">
-                        Address: {selectedCustomer.customerDetails.address}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCustomer(null);
-                    setCustomerSearchQuery("");
-                  }}
-                  className="text-green-600 hover:text-green-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Service Order Specific Fields - Show for service and mixed orders */}
-        {(orderType === "service" || orderType === "mixed") && (
-          <>
-            {/* Device Information Card */}
-            <div className="card">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">
-                Device Information {orderType === "mixed" && "(Optional)"}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Device Type {orderType === "service" && "*"}
-                  </label>
-                  <select
-                    {...register("deviceTypeId", {
-                      required:
-                        orderType === "service"
-                          ? "Device type is required"
-                          : false,
-                    })}
-                    className="input-field"
-                  >
-                    <option value="">Select Device Type</option>
-                    {deviceTypes.map((dt) => (
-                      <option key={dt._id} value={dt._id}>
-                        {dt.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.deviceTypeId && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.deviceTypeId.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Brand
-                  </label>
-                  <input
-                    {...register("brand")}
-                    className="input-field"
-                    placeholder="Apple, Dell, HP..."
-                  />
-                  {errors.brand && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.brand.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Model {orderType === "service" && "*"}
-                  </label>
-                  <input
-                    {...register("model", {
-                      required:
-                        orderType === "service" ? "Model is required" : false,
-                    })}
-                    className="input-field"
-                    placeholder="MacBook Pro 14"
-                  />
-                  {errors.model && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.model.message}
-                    </p>
-                  )}
-                </div>
-                {selectedDeviceType?.requiresSerialNumber && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Serial Number
-                    </label>
-                    <input
-                      {...register("serialNumber")}
-                      className="input-field"
-                    />
-                  </div>
-                )}
-                {selectedDeviceType?.requiresPassword && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Device Password
-                    </label>
-                    <input
-                      type="password"
-                      {...register("password")}
-                      className="input-field"
-                    />
-                  </div>
+                  </>
                 )}
               </div>
-            </div>
 
-            {/* Problem Description Card */}
-            <div className="card">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">
-                Problem Description {orderType === "mixed" && "(Optional)"}
-              </h2>
-              <textarea
-                {...register("problemDescription", {
-                  required:
-                    orderType === "service"
-                      ? "Problem description is required"
-                      : false,
-                })}
-                className="input-field resize-none"
-                rows={4}
-                placeholder="Describe the issue in detail..."
-              />
-              {errors.problemDescription && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.problemDescription.message}
-                </p>
-              )}
-            </div>
-
-            {/* Engineer Assignment Card */}
-            <div className="card">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">
-                Assign Engineer
-              </h2>
-              {engineers.length === 0 ? (
-                <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium text-yellow-800">
-                      No engineers available
-                    </p>
-                    <p className="text-xs text-yellow-600 mt-1">
-                      Add an engineer to assign orders
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/users/new?type=engineer")}
-                    className="btn-primary flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Engineer
-                  </button>
+              {/* Services */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Services *
+                </label>
+                <div className="space-y-2">
+                  {row.services.map((service) => (
+                    <div
+                      key={service.serviceType._id}
+                      className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-md"
+                    >
+                      <span className="flex-1 text-sm font-medium text-blue-900">
+                        {service.serviceType.name}
+                      </span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={service.quantity}
+                        onChange={(e) =>
+                          updateServiceQuantity(
+                            row.id,
+                            service.serviceType._id,
+                            parseInt(e.target.value) || 1
+                          )
+                        }
+                        className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-sm"
+                      />
+                      <button
+                        onClick={() =>
+                          removeService(row.id, service.serviceType._id)
+                        }
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                  <input
+                    type="text"
+                    value={row.serviceSearchQuery}
+                    onChange={(e) =>
+                      handleServiceSearch(row.id, e.target.value)
+                    }
+                    onFocus={() => {
+                      if (serviceSuggestions[row.id]?.length > 0) {
+                        updateOrderRow(row.id, {
+                          showServiceDropdown: true,
+                        });
+                      }
+                    }}
+                    placeholder="Add service..."
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  {row.showServiceDropdown &&
+                    serviceSuggestions[row.id]?.length > 0 && (
+                      <div className="relative z-50 mt-2 bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+                        {serviceSuggestions[row.id].map((serviceType) => (
+                          <button
+                            key={serviceType._id}
+                            type="button"
+                            onClick={() =>
+                              handleServiceSelect(row.id, serviceType)
+                            }
+                            className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b last:border-b-0"
+                          >
+                            <div className="font-medium text-base text-gray-900">
+                              {serviceType.name}
+                            </div>
+                            {serviceType.description && (
+                              <div className="text-sm text-gray-600 mt-1">
+                                {serviceType.description}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                 </div>
-              ) : (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Engineer (Optional)
-                  </label>
-                  <select
-                    value={selectedEngineerId}
-                    onChange={(e) => setSelectedEngineerId(e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="">Assign Later</option>
-                    {engineers.map((engineer) => (
-                      <option key={engineer._id} value={engineer._id}>
-                        {engineer.fullName}
-                        {engineer.engineerDetails?.currentWorkload !==
-                          undefined &&
-                          ` (Workload: ${engineer.engineerDetails.currentWorkload})`}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-2">
-                    You can assign or change the engineer later from the order
-                    details page
-                  </p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
+              </div>
 
-        {/* Order Items Section - Services and/or Products */}
-        <OrderItemsSection
-          orderType={orderType}
-          selectedServices={selectedServices}
-          serviceTypes={serviceTypes}
-          customServiceName={customServiceName}
-          customServicePrice={customServicePrice}
-          onAddService={addService}
-          onAddCustomService={addCustomService}
-          onUpdateServiceField={updateServiceField}
-          onRemoveService={removeService}
-          onCustomServiceNameChange={setCustomServiceName}
-          onCustomServicePriceChange={setCustomServicePrice}
-          selectedProducts={selectedProducts}
-          productSuggestions={productSuggestions}
-          showProductDropdown={showProductDropdown}
-          searchingProducts={searchingProducts}
-          onProductSearchChange={setProductSearchQuery}
-          onAddProduct={addProduct}
-          onUpdateProductField={updateProductField}
-          onRemoveProduct={removeProduct}
-          onAddCustomProduct={addCustomProduct}
-          invoiceAmounts={invoiceAmounts}
-          taxRate={taxRate}
-          additionalDiscount={additionalDiscount}
-          onAdditionalDiscountChange={setAdditionalDiscount}
-          paidAmount={paidAmount}
-          onPaidAmountChange={setPaidAmount}
-        />
-
-        {/* Priority & Payment Status Card */}
-        <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">
-            Priority & Payment Status
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Priority
-              </label>
-              <select {...register("priority")} className="input-field">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Status
-              </label>
-              <div className="input-field bg-gray-50 flex items-center">
-                <span
-                  className={`px-3 py-1 rounded text-sm font-medium ${
-                    paidAmount === 0
-                      ? "bg-red-100 text-red-700"
-                      : paidAmount >= invoiceAmounts.finalAmount
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
+              {/* Device Type */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Device Type *
+                </label>
+                <select
+                  value={row.deviceTypeId}
+                  onChange={(e) =>
+                    updateOrderRow(row.id, { deviceTypeId: e.target.value })
+                  }
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  {paidAmount === 0
-                    ? "Unpaid"
-                    : paidAmount >= invoiceAmounts.finalAmount
-                    ? "Paid"
-                    : "Partial"}
-                </span>
+                  <option value="">Select device...</option>
+                  {deviceTypes.map((dt) => (
+                    <option key={dt._id} value={dt._id}>
+                      {dt.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Brand */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Brand
+                </label>
+                <input
+                  type="text"
+                  value={row.brand}
+                  onChange={(e) =>
+                    updateOrderRow(row.id, { brand: e.target.value })
+                  }
+                  placeholder="Enter brand..."
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Model */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Model *
+                </label>
+                <input
+                  type="text"
+                  value={row.model}
+                  onChange={(e) =>
+                    updateOrderRow(row.id, { model: e.target.value })
+                  }
+                  placeholder="Enter model..."
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Problem Description */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Problem Description *
+                </label>
+                <textarea
+                  value={row.problemDescription}
+                  onChange={(e) =>
+                    updateOrderRow(row.id, {
+                      problemDescription: e.target.value,
+                    })
+                  }
+                  placeholder="Describe the problem..."
+                  rows={4}
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                />
+              </div>
+
+              {/* Engineer */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Engineer
+                </label>
+                <select
+                  value={row.engineerId}
+                  onChange={(e) =>
+                    updateOrderRow(row.id, { engineerId: e.target.value })
+                  }
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Assign later...</option>
+                  {engineers.map((eng) => (
+                    <option key={eng._id} value={eng._id}>
+                      {eng.fullName}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
-        </div>
+        ))}
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate("/orders")}
-            className="btn-secondary"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Creating...
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                Create Order
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+        {/* Add New Order Button - Mobile */}
+        <button
+          onClick={addNewOrderRow}
+          className="flex items-center justify-center gap-2 px-4 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+        >
+          <Plus className="w-5 h-5" />
+          Add New Order
+        </button>
+      </div>
 
-      {/* Customer Creation Modal - Outside the form to prevent conflicts */}
+          {/* Summary */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Orders</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {orderRows.length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Bulk Import Tab */}
+      {activeTab === "bulk" && <BulkImportPanel onImport={handleBulkImport} />}
+
+      {/* Customer Creation Modal */}
       <CustomerCreateModal
         isOpen={showCustomerModal}
         onClose={() => {
           setShowCustomerModal(false);
-          // Clear AI-generated customer info when modal is closed
-          setAiGeneratedCustomerInfo(null);
+          setActiveRowId("");
         }}
         onCustomerCreated={(customer) => {
-          setSelectedCustomer(customer);
-          setCustomerSearchQuery(customer.fullName);
-          setShowCustomerModal(false);
-          // Clear AI-generated customer info after use
-          setAiGeneratedCustomerInfo(null);
-        }}
-        prefillData={
-          aiGeneratedCustomerInfo || {
-            name: customerSearchQuery,
-            phone: customerSearchQuery,
+          if (activeRowId) {
+            updateOrderRow(activeRowId, {
+              customer,
+              customerSearchQuery: customer.fullName,
+            });
           }
-        }
+          setShowCustomerModal(false);
+          setActiveRowId("");
+        }}
+        prefillData={{}}
       />
     </div>
   );
