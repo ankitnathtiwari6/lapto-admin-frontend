@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import type { CreateSubTaskData, User } from '../types';
+import type { CreateSubTaskData } from '../types';
 import type { TaskType } from '../services/taskTypeService';
+import { type EngineerWithStats } from '../services/engineerService';
 import taskTypeService from '../services/taskTypeService';
 
 interface SubTaskFormProps {
-  users: User[];
+  users: EngineerWithStats[];
   onSubmit: (data: CreateSubTaskData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
@@ -101,7 +102,8 @@ const SubTaskForm: React.FC<SubTaskFormProps> = ({
             <option value="">Select Engineer</option>
             {users.map((user) => (
               <option key={user._id} value={user._id}>
-                {user.fullName} ({user.role})
+                {user.fullName} (P: {user.taskStats.pending}, I:{' '}
+                {user.taskStats.in_progress}, C: {user.taskStats.completed})
               </option>
             ))}
           </select>

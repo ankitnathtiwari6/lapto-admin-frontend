@@ -13,6 +13,7 @@ import SalesListPage from "./pages/SalesListPage";
 import PurchasesListPage from "./pages/PurchasesListPage";
 import CustomersPage from "./pages/CustomersPage";
 import NewCustomerPage from "./pages/NewCustomerPage";
+import CustomerFormPage from "./pages/CustomerFormPage";
 import EngineersPage from "./pages/EngineersPage";
 import StaffPage from "./pages/StaffPage";
 import StaffFormPage from "./pages/StaffFormPage";
@@ -114,7 +115,7 @@ function AppRoutes() {
         <Route path="purchases" element={<PurchasesListPage />} />
         <Route path="customers" element={<CustomersPage />} />
         <Route path="customers/new" element={<NewCustomerPage />} />
-        <Route path="customers/:id/edit" element={<UserFormPage />} />
+        <Route path="customers/:id/edit" element={<CustomerFormPage />} />
         <Route path="engineers" element={<EngineersPage />} />
         <Route path="engineers/new" element={<UserFormPage />} />
         <Route path="engineers/:id/edit" element={<UserFormPage />} />

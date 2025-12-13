@@ -1,29 +1,44 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import api from '../lib/api';
-import type { ServiceOrder, User, OrderActivityLog, Stage } from '../types';
-import subTaskService, { type SubTask } from '../services/subTaskService';
-import { ArrowLeft, User as UserIcon, Smartphone, CreditCard, FileText, Plus, Edit, CheckCircle, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
-import ActivityLog from '../components/ActivityLog';
-import WorkAssignmentPipeline from '../components/WorkAssignmentPipeline';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import api from "../lib/api";
+import type { ServiceOrder, OrderActivityLog, Stage } from "../types";
+import subTaskService, { type SubTask } from "../services/subTaskService";
+import engineerService, {
+  type EngineerWithStats,
+} from "../services/engineerService";
+import {
+  ArrowLeft,
+  User as UserIcon,
+  Smartphone,
+  CreditCard,
+  FileText,
+  Plus,
+  Edit,
+  CheckCircle,
+  RefreshCw,
+} from "lucide-react";
+import { format } from "date-fns";
+import ActivityLog from "../components/ActivityLog";
+import WorkAssignmentPipeline from "../components/WorkAssignmentPipeline";
 
 const OrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<ServiceOrder | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [engineers, setEngineers] = useState<EngineerWithStats[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTechnician, setSelectedTechnician] = useState('');
-  const [selectedStage, setSelectedStage] = useState('');
+  const [selectedTechnician, setSelectedTechnician] = useState("");
+  const [selectedStage, setSelectedStage] = useState("");
   const [updatingStage, setUpdatingStage] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [showAddPayment, setShowAddPayment] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'upi' | 'bank_transfer'>('cash');
-  const [paymentNotes, setPaymentNotes] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "cash" | "card" | "upi" | "bank_transfer"
+  >("cash");
+  const [paymentNotes, setPaymentNotes] = useState("");
   const [addingPayment, setAddingPayment] = useState(false);
 
   // Sub-task states
@@ -35,7 +50,7 @@ const OrderDetailPage: React.FC = () => {
 
   useEffect(() => {
     fetchOrder();
-    fetchUsers();
+    fetchEngineersWithStats();
     fetchStages();
     if (id) {
       fetchSubTasks();
@@ -48,33 +63,27 @@ const OrderDetailPage: React.FC = () => {
       const { data } = await api.get(`/orders/${id}`);
       setOrder(data.data);
     } catch (error) {
-      console.error('Error fetching order:', error);
+      console.error("Error fetching order:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchEngineersWithStats = async () => {
     try {
-      // Fetch staff from the current company - auth middleware filters by company automatically
-      const { data } = await api.get('/staff', {
-        params: {
-          status: 'active',
-          role: 'engineer,admin,super_admin'
-        }
-      });
-      setUsers(data.data);
+      const response = await engineerService.getEngineersWithStats();
+      setEngineers(response.data || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching engineers with stats:", error);
     }
   };
 
   const fetchStages = async () => {
     try {
-      const { data } = await api.get('/stages');
+      const { data } = await api.get("/stages");
       setStages(data.data);
     } catch (error) {
-      console.error('Error fetching stages:', error);
+      console.error("Error fetching stages:", error);
     }
   };
 
@@ -86,17 +95,17 @@ const OrderDetailPage: React.FC = () => {
         technicianId: selectedTechnician,
         notes: `Assigned to user`,
       });
-      alert('User assigned successfully! Order stage updated automatically.');
+      alert("User assigned successfully! Order stage updated automatically.");
       fetchOrder();
       fetchActivityLogs();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error assigning user');
+      alert(error.response?.data?.message || "Error assigning user");
     }
   };
 
   const handleUpdateStage = async () => {
     if (!selectedStage) {
-      alert('Please select a stage');
+      alert("Please select a stage");
       return;
     }
 
@@ -104,14 +113,14 @@ const OrderDetailPage: React.FC = () => {
     try {
       await api.put(`/orders/${id}/stage`, {
         stageId: selectedStage,
-        notes: 'Status updated manually'
+        notes: "Status updated manually",
       });
-      alert('Order status updated successfully!');
-      setSelectedStage('');
+      alert("Order status updated successfully!");
+      setSelectedStage("");
       fetchOrder();
       fetchActivityLogs();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error updating status');
+      alert(error.response?.data?.message || "Error updating status");
     } finally {
       setUpdatingStage(false);
     }
@@ -119,7 +128,7 @@ const OrderDetailPage: React.FC = () => {
 
   const handleUpdateStatus = async () => {
     if (!selectedStatus) {
-      alert('Please select a status');
+      alert("Please select a status");
       return;
     }
 
@@ -127,14 +136,14 @@ const OrderDetailPage: React.FC = () => {
     try {
       await api.put(`/orders/${id}/status`, {
         status: selectedStatus,
-        notes: 'Order status updated manually'
+        notes: "Order status updated manually",
       });
-      alert('Order status updated successfully!');
-      setSelectedStatus('');
+      alert("Order status updated successfully!");
+      setSelectedStatus("");
       fetchOrder();
       fetchActivityLogs();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error updating order status');
+      alert(error.response?.data?.message || "Error updating order status");
     } finally {
       setUpdatingStatus(false);
     }
@@ -142,7 +151,7 @@ const OrderDetailPage: React.FC = () => {
 
   const handleAddPayment = async () => {
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
-      alert('Please enter a valid payment amount');
+      alert("Please enter a valid payment amount");
       return;
     }
 
@@ -151,17 +160,17 @@ const OrderDetailPage: React.FC = () => {
       await api.post(`/orders/${id}/payment`, {
         amount: parseFloat(paymentAmount),
         method: paymentMethod,
-        notes: paymentNotes
+        notes: paymentNotes,
       });
 
-      alert('Payment added successfully!');
+      alert("Payment added successfully!");
       setShowAddPayment(false);
-      setPaymentAmount('');
-      setPaymentNotes('');
+      setPaymentAmount("");
+      setPaymentNotes("");
       fetchOrder();
       fetchActivityLogs();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error adding payment');
+      alert(error.response?.data?.message || "Error adding payment");
     } finally {
       setAddingPayment(false);
     }
@@ -173,7 +182,7 @@ const OrderDetailPage: React.FC = () => {
       const response = await subTaskService.getByOrder(id!);
       setSubTasks(response.data || []);
     } catch (error) {
-      console.error('Error fetching sub-tasks:', error);
+      console.error("Error fetching sub-tasks:", error);
     }
   };
 
@@ -183,7 +192,7 @@ const OrderDetailPage: React.FC = () => {
       const { data } = await api.get(`/activity-logs/order/${id}`);
       setActivityLogs(data.data || []);
     } catch (error) {
-      console.error('Error fetching activity logs:', error);
+      console.error("Error fetching activity logs:", error);
     } finally {
       setLoadingActivities(false);
     }
@@ -191,29 +200,40 @@ const OrderDetailPage: React.FC = () => {
 
   const getStageBadge = (stageName: string) => {
     const normalizedName = stageName.toLowerCase();
-    if (normalizedName.includes('pending')) return 'badge-pending';
-    if (normalizedName.includes('assigned') || normalizedName.includes('progress') || normalizedName.includes('diagnosis')) return 'badge-in-progress';
-    if (normalizedName.includes('completed') || normalizedName.includes('delivered') || normalizedName.includes('ready')) return 'badge-completed';
-    if (normalizedName.includes('cancelled') || normalizedName.includes('hold')) return 'badge-cancelled';
-    return 'badge-pending';
+    if (normalizedName.includes("pending")) return "badge-pending";
+    if (
+      normalizedName.includes("assigned") ||
+      normalizedName.includes("progress") ||
+      normalizedName.includes("diagnosis")
+    )
+      return "badge-in-progress";
+    if (
+      normalizedName.includes("completed") ||
+      normalizedName.includes("delivered") ||
+      normalizedName.includes("ready")
+    )
+      return "badge-completed";
+    if (normalizedName.includes("cancelled") || normalizedName.includes("hold"))
+      return "badge-cancelled";
+    return "badge-pending";
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'badge-completed';
-      case 'in_progress':
-        return 'badge-in-progress';
-      case 'pending':
-        return 'badge-pending';
-      case 'cancelled':
-        return 'badge-cancelled';
-      case 'returned':
-        return 'badge-cancelled';
-      case 'reopened':
-        return 'badge-in-progress';
+      case "completed":
+        return "badge-completed";
+      case "in_progress":
+        return "badge-in-progress";
+      case "pending":
+        return "badge-pending";
+      case "cancelled":
+        return "badge-cancelled";
+      case "returned":
+        return "badge-cancelled";
+      case "reopened":
+        return "badge-in-progress";
       default:
-        return 'badge-pending';
+        return "badge-pending";
     }
   };
 
@@ -243,7 +263,7 @@ const OrderDetailPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/orders')}
+          onClick={() => navigate("/orders")}
           className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -261,10 +281,16 @@ const OrderDetailPage: React.FC = () => {
           </div>
           <div className="flex items-center gap-4 mt-1">
             <p className="text-gray-500 text-sm">
-              Created on {order.receivedDate ? format(new Date(order.receivedDate), 'MMM dd, yyyy') : 'N/A'}
+              Created on{" "}
+              {order.receivedDate
+                ? format(new Date(order.receivedDate), "MMM dd, yyyy")
+                : "N/A"}
             </p>
             <p className="text-gray-500 text-sm">
-              • Order: <span className="font-medium text-gray-700">{order.orderNumber}</span>
+              • Order:{" "}
+              <span className="font-medium text-gray-700">
+                {order.orderNumber}
+              </span>
             </p>
           </div>
         </div>
@@ -283,7 +309,9 @@ const OrderDetailPage: React.FC = () => {
           {/* Order Info */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-gray-900">Order Information</h3>
+              <h3 className="text-base font-semibold text-gray-900">
+                Order Information
+              </h3>
               <button
                 onClick={() => navigate(`/orders/${id}/edit`)}
                 className="text-sm text-purple-600 hover:text-purple-700 flex items-center gap-1"
@@ -299,8 +327,12 @@ const OrderDetailPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Customer</p>
-                  <p className="font-semibold text-gray-900">{order.customer.name}</p>
-                  <p className="text-sm text-gray-600">{order.customer.phone}</p>
+                  <p className="font-semibold text-gray-900">
+                    {order.customer.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {order.customer.phone}
+                  </p>
                 </div>
               </div>
               {order.device && (
@@ -310,8 +342,12 @@ const OrderDetailPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Device</p>
-                    <p className="font-semibold text-gray-900">{order.device.deviceTypeName}</p>
-                    <p className="text-sm text-gray-600">{order.device.brand} {order.device.model}</p>
+                    <p className="font-semibold text-gray-900">
+                      {order.device.deviceTypeName}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {order.device.brand} {order.device.model}
+                    </p>
                   </div>
                 </div>
               )}
@@ -322,7 +358,9 @@ const OrderDetailPage: React.FC = () => {
           {order.problemDescription && (
             <div className="card">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-900">Problem Description</h3>
+                <h3 className="text-base font-semibold text-gray-900">
+                  Problem Description
+                </h3>
                 <button
                   onClick={() => navigate(`/orders/${id}/edit`)}
                   className="text-sm text-purple-600 hover:text-purple-700 flex items-center gap-1"
@@ -331,12 +369,11 @@ const OrderDetailPage: React.FC = () => {
                   Edit
                 </button>
               </div>
-              <p className="text-gray-600 leading-relaxed">{order.problemDescription}</p>
+              <p className="text-gray-600 leading-relaxed">
+                {order.problemDescription}
+              </p>
             </div>
           )}
-
-          {/* Activity Log */}
-          <ActivityLog activities={activityLogs} loading={loadingActivities} />
 
           {/* Work Assignment Pipeline */}
           <WorkAssignmentPipeline
@@ -346,13 +383,16 @@ const OrderDetailPage: React.FC = () => {
             stageName={order.stageName}
             assignedToName={order.assignedTo?.userName}
             subTasks={subTasks}
-            users={users}
+            users={engineers}
             onUpdate={() => {
               fetchSubTasks();
               fetchOrder();
               fetchActivityLogs();
             }}
           />
+
+          {/* Activity Log */}
+          <ActivityLog activities={activityLogs} loading={loadingActivities} />
         </div>
 
         {/* Sidebar */}
@@ -361,7 +401,9 @@ const OrderDetailPage: React.FC = () => {
           <div className="card">
             <div className="flex items-center gap-2 mb-4">
               <RefreshCw className="w-5 h-5 text-purple-600" />
-              <h3 className="text-base font-semibold text-gray-900">Update Status</h3>
+              <h3 className="text-base font-semibold text-gray-900">
+                Update Status
+              </h3>
             </div>
             {order.stageName && (
               <div className="mb-4 p-3 bg-blue-50 rounded-xl">
@@ -388,7 +430,7 @@ const OrderDetailPage: React.FC = () => {
               disabled={updatingStage || !selectedStage}
               className="btn-primary w-full"
             >
-              {updatingStage ? 'Updating...' : 'Update Status'}
+              {updatingStage ? "Updating..." : "Update Status"}
             </button>
           </div>
 
@@ -396,13 +438,15 @@ const OrderDetailPage: React.FC = () => {
           <div className="card">
             <div className="flex items-center gap-2 mb-4">
               <CheckCircle className="w-5 h-5 text-blue-600" />
-              <h3 className="text-base font-semibold text-gray-900">Order Status</h3>
+              <h3 className="text-base font-semibold text-gray-900">
+                Order Status
+              </h3>
             </div>
             {order.status && (
               <div className="mb-4 p-3 bg-blue-50 rounded-xl">
                 <p className="text-xs text-blue-600 mb-1">Current Status</p>
                 <span className={`badge ${getStatusBadge(order.status)}`}>
-                  {order.status.replace(/_/g, ' ').toUpperCase()}
+                  {order.status.replace(/_/g, " ").toUpperCase()}
                 </span>
               </div>
             )}
@@ -424,23 +468,27 @@ const OrderDetailPage: React.FC = () => {
               disabled={updatingStatus || !selectedStatus}
               className="btn-primary w-full"
             >
-              {updatingStatus ? 'Updating...' : 'Update Order Status'}
+              {updatingStatus ? "Updating..." : "Update Order Status"}
             </button>
           </div>
 
           {/* Assign User */}
           <div className="card">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Assign User</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-4">
+              Assign User
+            </h3>
             {order.assignedTo && (
               <div className="mb-4 p-3 bg-purple-50 rounded-xl flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center">
                   <span className="text-purple-600 font-semibold text-sm">
-                    {order.assignedTo.userName?.charAt(0) || 'T'}
+                    {order.assignedTo.userName?.charAt(0) || "T"}
                   </span>
                 </div>
                 <div>
                   <p className="text-xs text-purple-600">Currently Assigned</p>
-                  <p className="font-medium text-gray-900">{order.assignedTo.userName}</p>
+                  <p className="font-medium text-gray-900">
+                    {order.assignedTo.userName}
+                  </p>
                 </div>
               </div>
             )}
@@ -450,13 +498,17 @@ const OrderDetailPage: React.FC = () => {
               className="input-field mb-3"
             >
               <option value="">Select User</option>
-              {users.map((user) => (
+              {engineers.map((user) => (
                 <option key={user._id} value={user._id}>
-                  {user.fullName} ({user.role})
+                  {user.fullName} (P: {user.taskStats.pending}, I:{" "}
+                  {user.taskStats.in_progress}, C: {user.taskStats.completed})
                 </option>
               ))}
             </select>
-            <button onClick={handleAssignTechnician} className="btn-primary w-full">
+            <button
+              onClick={handleAssignTechnician}
+              className="btn-primary w-full"
+            >
               Assign
             </button>
             <p className="text-xs text-gray-500 mt-2 text-center">
@@ -469,7 +521,9 @@ const OrderDetailPage: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-purple-600" />
-                <h3 className="text-base font-semibold text-gray-900">Payment</h3>
+                <h3 className="text-base font-semibold text-gray-900">
+                  Payment
+                </h3>
               </div>
               <button
                 onClick={() => setShowAddPayment(!showAddPayment)}
@@ -483,29 +537,41 @@ const OrderDetailPage: React.FC = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Estimated Cost</span>
-                <span className="font-semibold text-gray-900">₹{order.estimatedCost}</span>
+                <span className="font-semibold text-gray-900">
+                  ₹{order.estimatedCost}
+                </span>
               </div>
               {order.finalCost && (
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Final Cost</span>
-                  <span className="font-semibold text-gray-900">₹{order.finalCost}</span>
+                  <span className="font-semibold text-gray-900">
+                    ₹{order.finalCost}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Advance Paid</span>
-                <span className="font-semibold text-green-600">₹{order.advancePayment}</span>
+                <span className="font-semibold text-green-600">
+                  ₹{order.advancePayment}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Balance Due</span>
-                <span className="font-semibold text-orange-600">₹{order.balancePayment}</span>
+                <span className="font-semibold text-orange-600">
+                  ₹{order.balancePayment}
+                </span>
               </div>
               <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                 <span className="font-medium text-gray-700">Status</span>
-                <span className={`badge ${
-                  order.paymentStatus === 'paid' ? 'badge-completed' :
-                  order.paymentStatus === 'partial' ? 'badge-in-progress' :
-                  'badge-pending'
-                }`}>
+                <span
+                  className={`badge ${
+                    order.paymentStatus === "paid"
+                      ? "badge-completed"
+                      : order.paymentStatus === "partial"
+                      ? "badge-in-progress"
+                      : "badge-pending"
+                  }`}
+                >
                   {order.paymentStatus}
                 </span>
               </div>
@@ -514,7 +580,9 @@ const OrderDetailPage: React.FC = () => {
             {/* Add Payment Form */}
             {showAddPayment && (
               <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
-                <h4 className="text-sm font-semibold text-gray-900">Add New Payment</h4>
+                <h4 className="text-sm font-semibold text-gray-900">
+                  Add New Payment
+                </h4>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Amount (₹)
@@ -561,7 +629,7 @@ const OrderDetailPage: React.FC = () => {
                     disabled={addingPayment}
                     className="btn-primary flex-1"
                   >
-                    {addingPayment ? 'Processing...' : 'Add Payment'}
+                    {addingPayment ? "Processing..." : "Add Payment"}
                   </button>
                   <button
                     onClick={() => setShowAddPayment(false)}

@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { Search, Plus, Eye, Edit, Trash2, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2, Phone, MapPin } from 'lucide-react';
 
 interface Customer {
   _id: string;
-  name: string;
+  fullName: string;
   phone: string;
   email?: string;
-  address?: string;
-  totalOrders?: number;
+  customerDetails?: {
+    address?: string;
+    totalOrders?: number;
+  };
 }
 
 const CustomersPage: React.FC = () => {
@@ -91,7 +93,6 @@ const CustomersPage: React.FC = () => {
                 </th>
                 <th>Customer</th>
                 <th>Phone</th>
-                <th>Email</th>
                 <th>Address</th>
                 <th>Orders</th>
                 <th>Action</th>
@@ -107,10 +108,10 @@ const CustomersPage: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center">
                         <span className="text-purple-600 font-semibold text-sm">
-                          {customer.name?.charAt(0) || 'C'}
+                          {customer.fullName?.charAt(0) || 'C'}
                         </span>
                       </div>
-                      <span className="font-medium text-gray-900">{customer.name}</span>
+                      <span className="font-medium text-gray-900">{customer.fullName}</span>
                     </div>
                   </td>
                   <td>
@@ -120,27 +121,17 @@ const CustomersPage: React.FC = () => {
                     </div>
                   </td>
                   <td>
-                    {customer.email ? (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Mail className="w-4 h-4" />
-                        {customer.email}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">N/A</span>
-                    )}
-                  </td>
-                  <td>
-                    {customer.address ? (
+                    {customer.customerDetails?.address ? (
                       <div className="flex items-center gap-2 text-gray-600 max-w-[200px] truncate">
                         <MapPin className="w-4 h-4 shrink-0" />
-                        {customer.address}
+                        {customer.customerDetails.address}
                       </div>
                     ) : (
                       <span className="text-gray-400">N/A</span>
                     )}
                   </td>
                   <td>
-                    <span className="badge badge-in-progress">{customer.totalOrders || 0}</span>
+                    <span className="badge badge-in-progress">{customer.customerDetails?.totalOrders || 0}</span>
                   </td>
                   <td>
                     <div className="flex items-center gap-1">

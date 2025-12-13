@@ -148,6 +148,22 @@ class EngineerService {
     const response = await api.get<{ success: boolean; data: AssignedTask[] }>('/engineer/assigned-tasks');
     return response.data;
   }
+
+  async getEngineersWithStats() {
+    const response = await api.get<{ success: boolean; data: EngineerWithStats[] }>('/engineers/with-stats');
+    return response.data;
+  }
+}
+
+export interface EngineerWithStats {
+  _id: string;
+  fullName: string;
+  taskStats: {
+    pending: number;
+    in_progress: number;
+    completed: number;
+    total: number;
+  };
 }
 
 export default new EngineerService();

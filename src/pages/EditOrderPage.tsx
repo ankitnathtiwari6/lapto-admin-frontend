@@ -1,44 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { orderService } from '../services/orderService';
-import { deviceTypeService } from '../services/deviceTypeService';
-import { serviceTypeService } from '../services/serviceTypeService';
-import { customerService } from '../services/customerService';
-import { productService } from '../services/productService';
-import type { ServiceOrder, DeviceType, ServiceType } from '../types';
-import type { Product } from '../services/productService';
-import { ArrowLeft, X, Save } from 'lucide-react';
-
-interface FormData {
-  deviceTypeId: string;
-  brand: string;
-  model: string;
-  serialNumber?: string;
-  password?: string;
-  problemDescription: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-}
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { orderService } from "../services/orderService";
+import { deviceTypeService } from "../services/deviceTypeService";
+import { serviceTypeService } from "../services/serviceTypeService";
+import { customerService } from "../services/customerService";
+import type { ServiceOrder, DeviceType, ServiceType } from "../types";
+import { ArrowLeft, X, Save } from "lucide-react";
 
 const EditOrderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { register, handleSubmit, setValue } = useForm<FormData>();
 
   const [order, setOrder] = useState<ServiceOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Customer state
-  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
+  // Service state
+  const [serviceSearchQuery, setServiceSearchQuery] = useState("");
+  const [serviceSuggestions, setServiceSuggestions] = useState<ServiceType[]>(
+    []
+  );
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+
   // Data states
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+
+  // Form fields
+  const [voucherNo, setVoucherNo] = useState("");
+  const [deviceTypeId, setDeviceTypeId] = useState("");
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
+  const [password, setPassword] = useState("");
+  const [problemDescription, setProblemDescription] = useState("");
+  const [priority, setPriority] = useState<
+    "low" | "medium" | "high" | "urgent"
+  >("medium");
 
   // Services/Products state
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
@@ -48,7 +52,6 @@ const EditOrderPage: React.FC = () => {
     fetchOrder();
     fetchDeviceTypes();
     fetchServiceTypes();
-    fetchProducts();
   }, [id]);
 
   useEffect(() => {
@@ -59,7 +62,7 @@ const EditOrderPage: React.FC = () => {
           setCustomerSuggestions(response.data || []);
           setShowCustomerDropdown(true);
         } catch (error) {
-          console.error('Error searching customers:', error);
+          console.error("Error searching customers:", error);
         }
       } else {
         setCustomerSuggestions([]);
@@ -84,23 +87,31 @@ const EditOrderPage: React.FC = () => {
       setCustomerSearchQuery(orderData.customer.name);
 
       // Set form values for service orders
-      if (orderData.orderType === 'service' || !orderData.orderType) {
-        setValue('deviceTypeId', orderData.device?.deviceTypeId || '');
-        setValue('brand', orderData.device?.brand || '');
-        setValue('model', orderData.device?.model || '');
-        setValue('serialNumber', orderData.device?.serialNumber || '');
-        setValue('password', orderData.device?.password || '');
-        setValue('problemDescription', orderData.problemDescription || '');
-        setValue('priority', orderData.priority);
+      if (orderData.orderType === "service" || !orderData.orderType) {
+        // Extract deviceTypeId - could be populated object or string
+        const deviceTypeIdRaw = orderData.device?.deviceTypeId;
+        const extractedDeviceTypeId =
+          typeof deviceTypeIdRaw === "object" && deviceTypeIdRaw !== null
+            ? (deviceTypeIdRaw as any)._id
+            : deviceTypeIdRaw || "";
+
+        setVoucherNo(orderData.voucherNo || "");
+        setDeviceTypeId(extractedDeviceTypeId);
+        setBrand(orderData.device?.brand || "");
+        setModel(orderData.device?.model || "");
+        setSerialNumber(orderData.device?.serialNumber || "");
+        setPassword(orderData.device?.password || "");
+        setProblemDescription(orderData.problemDescription || "");
+        setPriority(orderData.priority);
         setSelectedServices(orderData.services || []);
       } else {
         // Product order
-        setValue('priority', orderData.priority);
+        setPriority(orderData.priority);
         setSelectedProducts(orderData.products || []);
       }
     } catch (error) {
-      console.error('Error fetching order:', error);
-      alert('Error loading order');
+      console.error("Error fetching order:", error);
+      alert("Error loading order");
     } finally {
       setLoading(false);
     }
@@ -111,7 +122,7 @@ const EditOrderPage: React.FC = () => {
       const response = await deviceTypeService.getAll({ isActive: true });
       setDeviceTypes(response.data || []);
     } catch (error) {
-      console.error('Error fetching device types:', error);
+      console.error("Error fetching device types:", error);
     }
   };
 
@@ -120,16 +131,7 @@ const EditOrderPage: React.FC = () => {
       const response = await serviceTypeService.getAll({ isActive: true });
       setServiceTypes(response.data || []);
     } catch (error) {
-      console.error('Error fetching service types:', error);
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const response = await productService.getAll();
-      setProducts(response.data || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error("Error fetching service types:", error);
     }
   };
 
@@ -139,68 +141,75 @@ const EditOrderPage: React.FC = () => {
     setShowCustomerDropdown(false);
   };
 
-  const updateServiceField = (serviceTypeId: string, field: string, value: any) => {
-    setSelectedServices(
-      selectedServices.map((s) =>
-        s.serviceTypeId === serviceTypeId ? { ...s, [field]: value } : s
-      )
+  const handleServiceSearch = (query: string) => {
+    setServiceSearchQuery(query);
+
+    if (query.length >= 1) {
+      const filtered = serviceTypes.filter((st) =>
+        st.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setServiceSuggestions(filtered);
+      setShowServiceDropdown(true);
+    } else {
+      setServiceSuggestions([]);
+      setShowServiceDropdown(false);
+    }
+  };
+
+  const handleServiceSelect = (serviceType: ServiceType) => {
+    const serviceIdToCheck = serviceType._id.toString();
+    const alreadyExists = selectedServices.some(
+      (s) =>
+        (s.serviceTypeId?._id || s.serviceTypeId)?.toString() ===
+        serviceIdToCheck
     );
+
+    if (alreadyExists) {
+      alert("This service is already added");
+      return;
+    }
+
+    setSelectedServices([
+      ...selectedServices,
+      {
+        serviceTypeId: serviceType._id,
+        serviceTypeName: serviceType.name,
+        description: serviceType.description,
+        quantity: 1,
+        unitPrice: 0,
+        discount: 0,
+        taxRate: 18,
+        estimatedCost: 0,
+      },
+    ]);
+    setServiceSearchQuery("");
+    setShowServiceDropdown(false);
   };
 
   const removeService = (serviceTypeId: string) => {
-    setSelectedServices(selectedServices.filter((s) => s.serviceTypeId !== serviceTypeId));
-  };
-
-  const addService = (serviceType: ServiceType) => {
-    if (!selectedServices.find((s) => s.serviceTypeId === serviceType._id)) {
-      setSelectedServices([
-        ...selectedServices,
-        {
-          serviceTypeId: serviceType._id,
-          serviceTypeName: serviceType.name,
-          description: serviceType.description,
-          quantity: 1,
-          unitPrice: 0,
-          discount: 0,
-          taxRate: 18,
-          estimatedCost: 0,
-        },
-      ]);
-    }
-  };
-
-  const updateProductField = (productId: string, field: string, value: any) => {
-    setSelectedProducts(
-      selectedProducts.map((p) =>
-        p.productId === productId ? { ...p, [field]: value } : p
+    setSelectedServices(
+      selectedServices.filter(
+        (s) =>
+          (s.serviceTypeId?._id || s.serviceTypeId)?.toString() !==
+          serviceTypeId?.toString()
       )
     );
   };
 
-  const removeProduct = (productId: string) => {
-    setSelectedProducts(selectedProducts.filter((p) => p.productId !== productId));
+  const updateServiceQuantity = (serviceTypeId: string, quantity: number) => {
+    setSelectedServices(
+      selectedServices.map((s) =>
+        (s.serviceTypeId?._id || s.serviceTypeId)?.toString() ===
+        serviceTypeId?.toString()
+          ? { ...s, quantity }
+          : s
+      )
+    );
   };
 
-  const addProduct = (product: Product) => {
-    if (!selectedProducts.find((p) => p.productId === product._id)) {
-      setSelectedProducts([
-        ...selectedProducts,
-        {
-          productId: product._id,
-          productName: product.name,
-          sku: product.sku,
-          quantity: 1,
-          unitPrice: product.unitPrice,
-          discount: 0,
-          taxRate: product.taxRate,
-        },
-      ]);
-    }
-  };
-
-  const onSubmit = async (formData: FormData) => {
+  const handleSave = async () => {
     if (!selectedCustomer) {
-      alert('Please select a customer');
+      alert("Please select a customer");
       return;
     }
 
@@ -211,35 +220,43 @@ const EditOrderPage: React.FC = () => {
           name: selectedCustomer.fullName || selectedCustomer.name,
           phone: selectedCustomer.phone,
           email: selectedCustomer.email,
-          address: selectedCustomer.customerDetails?.address || selectedCustomer.address,
+          address:
+            selectedCustomer.customerDetails?.address ||
+            selectedCustomer.address,
         },
-        priority: formData.priority,
+        priority,
       };
 
       // Update service-specific fields
-      if (order?.orderType === 'service' || !order?.orderType) {
-        const deviceType = deviceTypes.find((d) => d._id === formData.deviceTypeId);
+      if (order?.orderType === "service" || !order?.orderType) {
+        const deviceType = deviceTypes.find((d) => d._id === deviceTypeId);
         updateData.device = {
-          deviceTypeId: formData.deviceTypeId,
-          deviceTypeName: deviceType?.name || '',
-          brand: formData.brand,
-          model: formData.model,
+          deviceTypeId,
+          deviceTypeName: deviceType?.name || "",
+          brand,
+          model,
           attributes: {},
-          serialNumber: formData.serialNumber,
-          password: formData.password,
+          serialNumber,
+          password,
         };
-        updateData.problemDescription = formData.problemDescription;
-        updateData.services = selectedServices;
+        updateData.problemDescription = problemDescription;
+        updateData.voucherNo = voucherNo || undefined;
+
+        // Normalize services - extract IDs from populated objects
+        updateData.services = selectedServices.map((service) => ({
+          ...service,
+          serviceTypeId: service.serviceTypeId?._id || service.serviceTypeId,
+        }));
       } else {
         // Update product-specific fields
         updateData.products = selectedProducts;
       }
 
       await orderService.update(id!, updateData);
-      alert('Order updated successfully!');
+      alert("Order updated successfully!");
       navigate(`/orders/${id}`);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error updating order');
+      alert(error.response?.data?.message || "Error updating order");
     } finally {
       setSaving(false);
     }
@@ -264,8 +281,6 @@ const EditOrderPage: React.FC = () => {
     );
   }
 
-  const isServiceOrder = order.orderType === 'service' || !order.orderType;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -282,239 +297,260 @@ const EditOrderPage: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Customer Selection */}
-        <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">Customer Information</h2>
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search Customer *
-            </label>
-            <input
-              type="text"
-              value={customerSearchQuery}
-              onChange={(e) => {
-                setCustomerSearchQuery(e.target.value);
-                if (!e.target.value) setSelectedCustomer(null);
-              }}
-              onFocus={() => customerSuggestions.length > 0 && setShowCustomerDropdown(true)}
-              className="input-field"
-              placeholder="Search by name, phone, or email..."
-            />
+      {/* Table Format - Desktop */}
+      <div className="hidden lg:block rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-50 border-b-2 border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
+                  Voucher No
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[220px]">
+                  Customer *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[280px]">
+                  Services
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">
+                  Device Type *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
+                  Brand
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
+                  Model *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[240px]">
+                  Problem *
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px]">
+                  Priority
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white">
+              <tr className="hover:bg-gray-50">
+                {/* Voucher No Cell */}
+                <td className="px-4 py-3 border-r border-gray-200">
+                  <input
+                    type="text"
+                    value={voucherNo}
+                    onChange={(e) => setVoucherNo(e.target.value)}
+                    placeholder="Enter voucher no..."
+                    className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </td>
 
-            {showCustomerDropdown && customerSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {customerSuggestions.map((customer) => (
-                  <button
-                    key={customer._id}
-                    type="button"
-                    onClick={() => handleCustomerSelect(customer)}
-                    className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b last:border-b-0 transition-colors"
+                {/* Customer Cell */}
+                <td className="px-4 py-3 border-r border-gray-200 relative">
+                  {selectedCustomer ? (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-md text-sm font-medium">
+                        {selectedCustomer.fullName || selectedCustomer.name}
+                        <button
+                          onClick={() => {
+                            setSelectedCustomer(null);
+                            setCustomerSearchQuery("");
+                          }}
+                          className="hover:text-purple-900"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={customerSearchQuery}
+                        onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                        onFocus={() => {
+                          if (customerSuggestions.length > 0)
+                            setShowCustomerDropdown(true);
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowCustomerDropdown(false), 200);
+                        }}
+                        placeholder="Search customer..."
+                        className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      {showCustomerDropdown &&
+                        customerSuggestions.length > 0 && (
+                          <div className="absolute z-50 w-72 mt-1 bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto shadow-lg">
+                            {customerSuggestions.map((customer) => (
+                              <button
+                                key={customer._id}
+                                type="button"
+                                onClick={() => handleCustomerSelect(customer)}
+                                className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b"
+                              >
+                                <div className="font-medium text-sm text-gray-900">
+                                  {customer.fullName}
+                                </div>
+                                <div className="text-xs text-gray-600 mt-0.5">
+                                  {customer.phone}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                    </>
+                  )}
+                </td>
+
+                {/* Services Cell */}
+                <td className="px-4 py-3 border-r border-gray-200 relative">
+                  <div className="space-y-1.5">
+                    {selectedServices.map((service) => {
+                      const serviceId = (
+                        service.serviceTypeId?._id || service.serviceTypeId
+                      )?.toString();
+                      const serviceName =
+                        service.serviceTypeId?.name ||
+                        service.serviceTypeName ||
+                        "Unknown Service";
+                      return (
+                        <div
+                          key={serviceId}
+                          className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-md text-sm"
+                        >
+                          <span className="flex-1 font-medium text-blue-900">
+                            {serviceName}
+                          </span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={service.quantity}
+                            onChange={(e) =>
+                              updateServiceQuantity(
+                                serviceId,
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            className="w-14 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                          />
+                          <button
+                            onClick={() => removeService(serviceId)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                    <input
+                      type="text"
+                      value={serviceSearchQuery}
+                      onChange={(e) => handleServiceSearch(e.target.value)}
+                      onFocus={() => setShowServiceDropdown(true)}
+                      onBlur={() => {
+                        setTimeout(() => setShowServiceDropdown(false), 200);
+                      }}
+                      placeholder="Add service..."
+                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    {showServiceDropdown && (
+                      <div className="absolute z-50 w-72 mt-1 bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                        {serviceSuggestions.length > 0 ? (
+                          serviceSuggestions.map((serviceType) => (
+                            <button
+                              key={serviceType._id}
+                              type="button"
+                              onClick={() => handleServiceSelect(serviceType)}
+                              className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b"
+                            >
+                              <div className="font-medium text-sm text-gray-900">
+                                {serviceType.name}
+                              </div>
+                              {serviceType.description && (
+                                <div className="text-xs text-gray-600 mt-0.5">
+                                  {serviceType.description}
+                                </div>
+                              )}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-gray-500">
+                            {serviceSearchQuery
+                              ? "No services found"
+                              : "Start typing to search services"}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </td>
+
+                {/* Device Type Cell */}
+                <td className="px-4 py-3 border-r border-gray-200">
+                  <select
+                    value={deviceTypeId}
+                    onChange={(e) => setDeviceTypeId(e.target.value)}
+                    className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
-                    <div className="font-medium text-gray-900">{customer.fullName}</div>
-                    <div className="text-sm text-gray-600">{customer.phone}</div>
-                    {customer.email && <div className="text-xs text-gray-500">{customer.email}</div>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Service Order Fields */}
-        {isServiceOrder && (
-          <>
-            {/* Device Information */}
-            <div className="card">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">Device Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Device Type *</label>
-                  <select {...register('deviceTypeId', { required: true })} className="input-field">
-                    <option value="">Select Device Type</option>
+                    <option value="">Select device...</option>
                     {deviceTypes.map((dt) => (
-                      <option key={dt._id} value={dt._id}>{dt.name}</option>
+                      <option key={dt._id} value={dt._id}>
+                        {dt.name}
+                      </option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Brand *</label>
-                  <input {...register('brand', { required: true })} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Model *</label>
-                  <input {...register('model', { required: true })} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number</label>
-                  <input {...register('serialNumber')} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                  <input {...register('password')} type="password" className="input-field" />
-                </div>
-              </div>
-            </div>
+                </td>
 
-            {/* Problem Description */}
-            <div className="card">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">Problem Description</h2>
-              <textarea
-                {...register('problemDescription', { required: true })}
-                className="input-field resize-none"
-                rows={4}
-              />
-            </div>
+                {/* Brand Cell */}
+                <td className="px-4 py-3 border-r border-gray-200">
+                  <input
+                    type="text"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    placeholder="Enter brand..."
+                    className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </td>
 
-            {/* Services */}
-            <div className="card">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">Services</h2>
+                {/* Model Cell */}
+                <td className="px-4 py-3 border-r border-gray-200">
+                  <input
+                    type="text"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    placeholder="Enter model..."
+                    className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </td>
 
-              {/* Selected Services */}
-              {selectedServices.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  {selectedServices.map((service) => (
-                    <div key={service.serviceTypeId} className="p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="font-medium text-gray-900">{service.serviceTypeName}</div>
-                        <button
-                          type="button"
-                          onClick={() => removeService(service.serviceTypeId)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <input
-                          type="number"
-                          value={service.quantity}
-                          onChange={(e) => updateServiceField(service.serviceTypeId, 'quantity', parseInt(e.target.value) || 1)}
-                          placeholder="Quantity"
-                          className="input-field text-sm"
-                        />
-                        <input
-                          type="number"
-                          value={service.unitPrice}
-                          onChange={(e) => updateServiceField(service.serviceTypeId, 'unitPrice', parseFloat(e.target.value) || 0)}
-                          placeholder="Price"
-                          className="input-field text-sm"
-                        />
-                        <input
-                          type="number"
-                          value={service.discount}
-                          onChange={(e) => updateServiceField(service.serviceTypeId, 'discount', parseFloat(e.target.value) || 0)}
-                          placeholder="Discount"
-                          className="input-field text-sm"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                {/* Problem Cell */}
+                <td className="px-4 py-3 border-r border-gray-200">
+                  <textarea
+                    value={problemDescription}
+                    onChange={(e) => setProblemDescription(e.target.value)}
+                    placeholder="Describe the problem..."
+                    rows={2}
+                    className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                  />
+                </td>
 
-              {/* Add Service */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Add Service</label>
-                <select
-                  onChange={(e) => {
-                    const service = serviceTypes.find(s => s._id === e.target.value);
-                    if (service) addService(service);
-                    e.target.value = '';
-                  }}
-                  className="input-field"
-                >
-                  <option value="">Select service to add</option>
-                  {serviceTypes.map((st) => (
-                    <option key={st._id} value={st._id}>{st.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Product Order Fields */}
-        {!isServiceOrder && (
-          <div className="card">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Products</h2>
-
-            {/* Selected Products */}
-            {selectedProducts.length > 0 && (
-              <div className="mb-4 space-y-2">
-                {selectedProducts.map((product) => (
-                  <div key={product.productId} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="font-medium text-gray-900">{product.productName}</div>
-                      <button
-                        type="button"
-                        onClick={() => removeProduct(product.productId)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <input
-                        type="number"
-                        value={product.quantity}
-                        onChange={(e) => updateProductField(product.productId, 'quantity', parseInt(e.target.value) || 1)}
-                        placeholder="Quantity"
-                        className="input-field text-sm"
-                      />
-                      <input
-                        type="number"
-                        value={product.unitPrice}
-                        onChange={(e) => updateProductField(product.productId, 'unitPrice', parseFloat(e.target.value) || 0)}
-                        placeholder="Price"
-                        className="input-field text-sm"
-                      />
-                      <input
-                        type="number"
-                        value={product.discount}
-                        onChange={(e) => updateProductField(product.productId, 'discount', parseFloat(e.target.value) || 0)}
-                        placeholder="Discount"
-                        className="input-field text-sm"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add Product */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Add Product</label>
-              <select
-                onChange={(e) => {
-                  const product = products.find(p => p._id === e.target.value);
-                  if (product) addProduct(product);
-                  e.target.value = '';
-                }}
-                className="input-field"
-              >
-                <option value="">Select product to add</option>
-                {products.map((p) => (
-                  <option key={p._id} value={p._id}>{p.name} - ₹{p.unitPrice}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
-
-        {/* Priority */}
-        <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">Priority</h2>
-          <select {...register('priority')} className="input-field">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
+                {/* Priority Cell */}
+                <td className="px-4 py-3">
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value as any)}
+                    className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3">
+        {/* Action Buttons - Desktop */}
+        <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-end gap-3">
           <button
             type="button"
             onClick={() => navigate(`/orders/${id}`)}
@@ -523,7 +559,7 @@ const EditOrderPage: React.FC = () => {
             Cancel
           </button>
           <button
-            type="submit"
+            onClick={handleSave}
             disabled={saving}
             className="btn-primary flex items-center gap-2"
           >
@@ -540,7 +576,281 @@ const EditOrderPage: React.FC = () => {
             )}
           </button>
         </div>
-      </form>
+      </div>
+
+      {/* Card Format - Mobile */}
+      <div className="lg:hidden bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-purple-600 text-white px-4 py-3">
+          <h3 className="font-semibold">Edit Order</h3>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Voucher No */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Voucher No
+            </label>
+            <input
+              type="text"
+              value={voucherNo}
+              onChange={(e) => setVoucherNo(e.target.value)}
+              placeholder="Enter voucher number..."
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* Customer */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Customer *
+            </label>
+            {selectedCustomer ? (
+              <div className="flex items-center gap-2">
+                <span className="flex-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-md text-sm font-medium">
+                  {selectedCustomer.fullName || selectedCustomer.name}
+                </span>
+                <button
+                  onClick={() => {
+                    setSelectedCustomer(null);
+                    setCustomerSearchQuery("");
+                  }}
+                  className="p-2 text-purple-600 hover:text-purple-800"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={customerSearchQuery}
+                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                  onFocus={() => {
+                    if (customerSuggestions.length > 0)
+                      setShowCustomerDropdown(true);
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowCustomerDropdown(false), 200);
+                  }}
+                  placeholder="Search customer..."
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                {showCustomerDropdown && customerSuggestions.length > 0 && (
+                  <div className="relative z-50 mt-2 bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                    {customerSuggestions.map((customer) => (
+                      <button
+                        key={customer._id}
+                        type="button"
+                        onClick={() => handleCustomerSelect(customer)}
+                        className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b"
+                      >
+                        <div className="font-medium text-base text-gray-900">
+                          {customer.fullName}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {customer.phone}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Services */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Services
+            </label>
+            <div className="space-y-2">
+              {selectedServices.map((service) => {
+                const serviceId = (
+                  service.serviceTypeId?._id || service.serviceTypeId
+                )?.toString();
+                const serviceName =
+                  service.serviceTypeId?.name ||
+                  service.serviceTypeName ||
+                  "Unknown Service";
+                return (
+                  <div
+                    key={serviceId}
+                    className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-md"
+                  >
+                    <span className="flex-1 text-sm font-medium text-blue-900">
+                      {serviceName}
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={service.quantity}
+                      onChange={(e) =>
+                        updateServiceQuantity(
+                          serviceId,
+                          parseInt(e.target.value) || 1
+                        )
+                      }
+                      className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-sm"
+                    />
+                    <button
+                      onClick={() => removeService(serviceId)}
+                      className="text-red-500 hover:text-red-700 p-1"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                );
+              })}
+              <input
+                type="text"
+                value={serviceSearchQuery}
+                onChange={(e) => handleServiceSearch(e.target.value)}
+                onFocus={() => setShowServiceDropdown(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowServiceDropdown(false), 200);
+                }}
+                placeholder="Add service..."
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              {showServiceDropdown && (
+                <div className="relative z-50 mt-2 bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+                  {serviceSuggestions.length > 0 ? (
+                    serviceSuggestions.map((serviceType) => (
+                      <button
+                        key={serviceType._id}
+                        type="button"
+                        onClick={() => handleServiceSelect(serviceType)}
+                        className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b"
+                      >
+                        <div className="font-medium text-base text-gray-900">
+                          {serviceType.name}
+                        </div>
+                        {serviceType.description && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            {serviceType.description}
+                          </div>
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-base text-gray-500">
+                      {serviceSearchQuery
+                        ? "No services found"
+                        : "Start typing to search services"}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Device Type */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Device Type *
+            </label>
+            <select
+              value={deviceTypeId}
+              onChange={(e) => setDeviceTypeId(e.target.value)}
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">Select device...</option>
+              {deviceTypes.map((dt) => (
+                <option key={dt._id} value={dt._id}>
+                  {dt.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Brand */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Brand
+            </label>
+            <input
+              type="text"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              placeholder="Enter brand..."
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* Model */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Model *
+            </label>
+            <input
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="Enter model..."
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* Problem Description */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Problem Description *
+            </label>
+            <textarea
+              value={problemDescription}
+              onChange={(e) => setProblemDescription(e.target.value)}
+              placeholder="Describe the problem..."
+              rows={4}
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+            />
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Priority
+            </label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as any)}
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+
+          {/* Action Buttons - Mobile */}
+          <div className="flex flex-col gap-3 pt-4">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full btn-primary flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/orders/${id}`)}
+              className="w-full btn-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

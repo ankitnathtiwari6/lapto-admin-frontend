@@ -3,15 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { deviceTypeService } from "../services/deviceTypeService";
 import { serviceTypeService } from "../services/serviceTypeService";
 import { orderService } from "../services/orderService";
-import { userService } from "../services/userService";
 import { customerService } from "../services/customerService";
 import type { CreateOrderData } from "../services/orderService";
-import type { DeviceType, ServiceType, User } from "../types";
+import type { DeviceType, ServiceType, } from "../types";
 import type { Customer } from "../services/customerService";
 import { Plus, ArrowLeft, X, Trash2 } from "lucide-react";
 import CustomerCreateModal from "../components/CustomerCreateModal";
 import ServiceCreateModal from "../components/ServiceCreateModal";
 import BulkImportPanel from "../components/BulkImportPanel";
+import engineerService, {
+  type EngineerWithStats,
+} from "../services/engineerService";
 
 interface OrderRow {
   id: string;
@@ -40,7 +42,7 @@ const NewOrderPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"manual" | "bulk">("manual");
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
-  const [engineers, setEngineers] = useState<User[]>([]);
+  const [engineers, setEngineers] = useState<EngineerWithStats[]>([]);
   const [defaultDeviceTypeId, setDefaultDeviceTypeId] = useState<string>("");
   const [savingRows, setSavingRows] = useState<{ [rowId: string]: boolean }>(
     {}
@@ -99,7 +101,7 @@ const NewOrderPage: React.FC = () => {
       const [devicesRes, servicesRes, engineersRes] = await Promise.all([
         deviceTypeService.getAll({ isActive: true }),
         serviceTypeService.getAll({ isActive: true }),
-        userService.getEngineers(),
+        engineerService.getEngineersWithStats(),
       ]);
       const devices = devicesRes.data || [];
       setDeviceTypes(devices);
@@ -776,7 +778,9 @@ const NewOrderPage: React.FC = () => {
                           <option value="">Assign later...</option>
                           {engineers.map((eng) => (
                             <option key={eng._id} value={eng._id}>
-                              {eng.fullName}
+                              {eng.fullName} (
+                              {`P: ${eng.taskStats.pending}, I: ${eng.taskStats.in_progress}, C: ${eng.taskStats.completed}`}
+                              )
                             </option>
                           ))}
                         </select>
@@ -1198,7 +1202,9 @@ const NewOrderPage: React.FC = () => {
                       <option value="">Assign later...</option>
                       {engineers.map((eng) => (
                         <option key={eng._id} value={eng._id}>
-                          {eng.fullName}
+                          {eng.fullName} (
+                          {`P: ${eng.taskStats.pending}, I: ${eng.taskStats.in_progress}, C: ${eng.taskStats.completed}`}
+                          )
                         </option>
                       ))}
                     </select>

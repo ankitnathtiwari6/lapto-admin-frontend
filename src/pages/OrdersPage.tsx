@@ -190,9 +190,11 @@ const OrdersPage: React.FC = () => {
                     <td>
                       {order.device ? (
                         <div>
-                          <p className="font-medium text-gray-900">{order.device.deviceTypeName}</p>
+                          <p className="font-medium text-gray-900">
+                            {order.device.deviceTypeName} - {order.device.model}
+                          </p>
                           <p className="text-sm text-gray-500">
-                            {order.device.brand} {order.device.model}
+                            {order.device.brand}
                           </p>
                         </div>
                       ) : (

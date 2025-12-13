@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus } from "lucide-react";
-import type { User as UserType, CreateSubTaskData } from "../../types";
+import type { CreateSubTaskData } from "../../types";
 import subTaskService from "../../services/subTaskService";
 import orderService from "../../services/orderService";
 import type { ServiceOrder } from "../../types";
 import SubTaskForm from "../SubTaskForm";
-import api from "../../lib/api";
+import engineerService, {
+  type EngineerWithStats,
+} from "../../services/engineerService";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -15,16 +17,6 @@ interface CreateTaskModalProps {
   prefilledOrderId?: string;
 }
 
-interface Engineer {
-  _id: string;
-  fullName: string;
-  email?: string;
-  engineerDetails?: {
-    currentWorkload: number;
-    specialization?: string[];
-  };
-}
-
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
@@ -32,9 +24,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   onSuccess,
   prefilledOrderId,
 }) => {
-  const [engineers, setEngineers] = useState<Engineer[]>([]);
+  const [engineers, setEngineers] = useState<EngineerWithStats[]>([]);
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
-  const [selectedOrderId, setSelectedOrderId] = useState<string>(prefilledOrderId || "");
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(
+    prefilledOrderId || ""
+  );
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -57,11 +51,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
   const fetchEngineers = async () => {
     try {
-      // Use staff route which automatically filters by company through auth middleware
-      const response = await api.get('/staff/engineers');
+      const response = await engineerService.getEngineersWithStats();
       // Filter out current user
-      const filteredEngineers = response.data.data.filter(
-        (eng: Engineer) => eng._id !== currentUserId
+      const filteredEngineers = response.data.filter(
+        (eng: EngineerWithStats) => eng._id !== currentUserId
       );
       setEngineers(filteredEngineers);
     } catch (error) {
@@ -135,10 +128,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">
-                {prefilledOrderId ? 'Create Subtask' : 'Create New Task'}
+                {prefilledOrderId ? "Create Subtask" : "Create New Task"}
               </h3>
               <p className="text-sm text-gray-500">
-                {prefilledOrderId ? 'Delegate part of this order to another engineer' : 'Assign task to another engineer'}
+                {prefilledOrderId
+                  ? "Delegate part of this order to another engineer"
+                  : "Assign task to another engineer"}
               </p>
             </div>
           </div>
@@ -167,15 +162,15 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 <option value="">Choose an order...</option>
                 {orders.map((order) => (
                   <option key={order._id} value={order._id}>
-                    {order.orderNumber} - {order.device?.deviceTypeName || "N/A"} (
-                    {order.device?.brand} {order.device?.model})
+                    {order.orderNumber} - {order.device?.deviceTypeName || "N/A"}{" "}
+                    ({order.device?.brand} {order.device?.model})
                   </option>
                 ))}
               </select>
               {selectedOrder && (
                 <p className="text-xs text-gray-500 mt-1">
-                  {selectedOrder.device?.deviceTypeName} - {selectedOrder.device?.brand}{" "}
-                  {selectedOrder.device?.model}
+                  {selectedOrder.device?.deviceTypeName} -{" "}
+                  {selectedOrder.device?.brand} {selectedOrder.device?.model}
                 </p>
               )}
             </div>
@@ -184,12 +179,16 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           {/* Order Info (when prefilled) */}
           {prefilledOrderId && selectedOrder && (
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-              <p className="text-xs text-purple-600 font-medium mb-1">Selected Order</p>
-              <p className="text-sm font-semibold text-gray-900">{selectedOrder.orderNumber}</p>
+              <p className="text-xs text-purple-600 font-medium mb-1">
+                Selected Order
+              </p>
+              <p className="text-sm font-semibold text-gray-900">
+                {selectedOrder.orderNumber}
+              </p>
               {selectedOrder.device && (
                 <p className="text-xs text-gray-600 mt-1">
-                  {selectedOrder.device.deviceTypeName} - {selectedOrder.device.brand}{" "}
-                  {selectedOrder.device.model}
+                  {selectedOrder.device.deviceTypeName} -{" "}
+                  {selectedOrder.device.brand} {selectedOrder.device.model}
                 </p>
               )}
             </div>
@@ -197,7 +196,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
           {/* SubTask Form */}
           <SubTaskForm
-            users={engineers as UserType[]}
+            users={engineers}
             onSubmit={handleSubmit}
             onCancel={handleClose}
             isLoading={creating}
@@ -211,3 +210,4 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 };
 
 export default CreateTaskModal;
+

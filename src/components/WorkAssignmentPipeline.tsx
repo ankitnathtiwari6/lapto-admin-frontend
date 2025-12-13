@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Clock, AlertCircle, CheckCircle, Plus, Edit, User as UserIcon, FileText } from 'lucide-react';
-import type { SubTask, CreateSubTaskData, User } from '../types';
-import type { TaskType } from '../services/taskTypeService';
-import subTaskService from '../services/subTaskService';
-import taskTypeService from '../services/taskTypeService';
-import SubTaskForm from './SubTaskForm';
+import React, { useState, useEffect } from "react";
+import {
+  Users,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Plus,
+  Edit,
+  FileText,
+  UserIcon,
+} from "lucide-react";
+import type { SubTask, CreateSubTaskData } from "../types";
+import type { TaskType } from "../services/taskTypeService";
+import type { EngineerWithStats } from "../services/engineerService";
+import subTaskService from "../services/subTaskService";
+import taskTypeService from "../services/taskTypeService";
+import SubTaskForm from "./SubTaskForm";
 
 interface WorkAssignmentPipelineProps {
   orderId: string;
@@ -13,7 +23,7 @@ interface WorkAssignmentPipelineProps {
   stageName?: string;
   assignedToName?: string;
   subTasks: SubTask[];
-  users: User[];
+  users: EngineerWithStats[];
   onUpdate: () => void;
 }
 
@@ -39,7 +49,7 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
         const response = await taskTypeService.getAll({ isActive: true });
         setTaskTypes(response.data.data || []);
       } catch (error) {
-        console.error('Error fetching task types:', error);
+        console.error("Error fetching task types:", error);
       }
     };
     fetchTaskTypes();
@@ -49,11 +59,11 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
     setCreating(true);
     try {
       await subTaskService.create(orderId, formData);
-      alert('Work assigned successfully!');
+      alert("Work assigned successfully!");
       setShowAddForm(false);
       onUpdate();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error assigning work');
+      alert(error.response?.data?.message || "Error assigning work");
     } finally {
       setCreating(false);
     }
@@ -62,10 +72,10 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
   const handleUpdateStatus = async (taskId: string, status: string) => {
     try {
       await subTaskService.updateStatus(taskId, status);
-      alert('Work status updated!');
+      alert("Work status updated!");
       onUpdate();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error updating work status');
+      alert(error.response?.data?.message || "Error updating work status");
     }
   };
 
@@ -86,62 +96,77 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
       // Convert Date objects to strings for the API
       const updateData: any = { ...editForm };
       if (updateData.startDate instanceof Date) {
-        updateData.startDate = updateData.startDate.toISOString().split('T')[0];
+        updateData.startDate = updateData.startDate.toISOString().split("T")[0];
       }
       if (updateData.dueDate instanceof Date) {
-        updateData.dueDate = updateData.dueDate.toISOString().split('T')[0];
+        updateData.dueDate = updateData.dueDate.toISOString().split("T")[0];
       }
 
       await subTaskService.update(taskId, updateData);
-      alert('Work details updated!');
+      alert("Work details updated!");
       setEditingTaskId(null);
       setEditForm({});
       onUpdate();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error updating work');
+      alert(error.response?.data?.message || "Error updating work");
     }
   };
 
   const getStageBadge = (stage: string) => {
     const normalized = stage.toLowerCase();
-    if (normalized.includes('pending')) return 'badge-pending';
-    if (normalized.includes('assigned') || normalized.includes('progress')) return 'badge-in-progress';
-    if (normalized.includes('completed') || normalized.includes('delivered')) return 'badge-completed';
-    if (normalized.includes('cancelled') || normalized.includes('hold')) return 'badge-cancelled';
-    return 'badge-pending';
+    if (normalized.includes("pending")) return "badge-pending";
+    if (normalized.includes("assigned") || normalized.includes("progress"))
+      return "badge-in-progress";
+    if (normalized.includes("completed") || normalized.includes("delivered"))
+      return "badge-completed";
+    if (normalized.includes("cancelled") || normalized.includes("hold"))
+      return "badge-cancelled";
+    return "badge-pending";
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed': return 'badge-completed';
-      case 'in_progress': return 'badge-in-progress';
-      case 'pending': return 'badge-pending';
-      case 'blocked':
-      case 'cancelled': return 'badge-cancelled';
-      default: return 'badge-pending';
+      case "completed":
+        return "badge-completed";
+      case "in_progress":
+        return "badge-in-progress";
+      case "pending":
+        return "badge-pending";
+      case "blocked":
+      case "cancelled":
+        return "badge-cancelled";
+      default:
+        return "badge-pending";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="w-3 h-3 text-white" />;
-      case 'in_progress': return <Clock className="w-3 h-3 text-white" />;
-      case 'blocked': return <AlertCircle className="w-3 h-3 text-white" />;
-      default: return <Clock className="w-3 h-3 text-white" />;
+      case "completed":
+        return <CheckCircle className="w-3 h-3 text-white" />;
+      case "in_progress":
+        return <Clock className="w-3 h-3 text-white" />;
+      case "blocked":
+        return <AlertCircle className="w-3 h-3 text-white" />;
+      default:
+        return <Clock className="w-3 h-3 text-white" />;
     }
   };
 
   // Get unique engineers with their names
-  const uniqueEngineers = Array.from(new Set(subTasks.map(t => t.assignedTo)))
-    .map(id => {
-      const task = subTasks.find(t => t.assignedTo === id);
-      return { id, name: task?.assignedToName || '' };
-    });
+  const uniqueEngineers = Array.from(
+    new Set(subTasks.map((t) => t.assignedTo))
+  ).map((id) => {
+    const task = subTasks.find((t) => t.assignedTo === id);
+    return { id, name: task?.assignedToName || "" };
+  });
 
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold text-gray-900">Work Assignment Pipeline</h3>
+        <h3 className="text-base font-semibold text-gray-900">
+          Work Assignment Pipeline
+        </h3>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="btn-primary text-sm flex items-center gap-1"
@@ -157,13 +182,20 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
           <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
             <div className="flex items-center gap-2 mb-1">
               <Users className="w-4 h-4 text-purple-600" />
-              <p className="text-xs text-purple-600 font-medium">Total Assigned</p>
+              <p className="text-xs text-purple-600 font-medium">
+                Total Assigned
+              </p>
             </div>
-            <p className="text-2xl font-bold text-purple-900">{subTasks.length}</p>
+            <p className="text-2xl font-bold text-purple-900">
+              {subTasks.length}
+            </p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {uniqueEngineers.slice(0, 3).map(eng => (
-                <span key={eng.id} className="text-xs text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">
-                  {eng.name.split(' ')[0]}
+              {uniqueEngineers.slice(0, 3).map((eng) => (
+                <span
+                  key={eng.id}
+                  className="text-xs text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded"
+                >
+                  {eng.name.split(" ")[0]}
                 </span>
               ))}
               {uniqueEngineers.length > 3 && (
@@ -180,7 +212,7 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
               <p className="text-xs text-blue-600 font-medium">In Progress</p>
             </div>
             <p className="text-2xl font-bold text-blue-900">
-              {subTasks.filter(t => t.status === 'in_progress').length}
+              {subTasks.filter((t) => t.status === "in_progress").length}
             </p>
             <p className="text-xs text-blue-600 mt-1">working now</p>
           </div>
@@ -191,7 +223,7 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
               <p className="text-xs text-orange-600 font-medium">Pending</p>
             </div>
             <p className="text-2xl font-bold text-orange-900">
-              {subTasks.filter(t => t.status === 'pending').length}
+              {subTasks.filter((t) => t.status === "pending").length}
             </p>
             <p className="text-xs text-orange-600 mt-1">not started</p>
           </div>
@@ -202,10 +234,17 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
               <p className="text-xs text-green-600 font-medium">Completed</p>
             </div>
             <p className="text-2xl font-bold text-green-900">
-              {subTasks.filter(t => t.status === 'completed').length}
+              {subTasks.filter((t) => t.status === "completed").length}
             </p>
             <p className="text-xs text-green-600 mt-1">
-              {subTasks.length > 0 ? Math.round((subTasks.filter(t => t.status === 'completed').length / subTasks.length) * 100) : 0}% done
+              {subTasks.length > 0
+                ? Math.round(
+                    (subTasks.filter((t) => t.status === "completed").length /
+                      subTasks.length) *
+                      100
+                  )
+                : 0}
+              % done
             </p>
           </div>
         </div>
@@ -233,13 +272,19 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-purple-600 font-medium">MAIN ORDER</p>
-                  <p className="font-bold text-gray-900 truncate">{orderNumber}</p>
+                  <p className="text-xs text-purple-600 font-medium">
+                    MAIN ORDER
+                  </p>
+                  <p className="font-bold text-gray-900 truncate">
+                    {orderNumber}
+                  </p>
                 </div>
                 {assignedToName && (
                   <div className="text-right">
                     <p className="text-xs text-gray-500">Lead</p>
-                    <p className="font-semibold text-gray-900 text-sm">{assignedToName}</p>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      {assignedToName}
+                    </p>
                   </div>
                 )}
                 {stageName && (
@@ -258,7 +303,10 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                     <div className="absolute top-3 left-0 right-0 h-0.5 bg-purple-300"></div>
                     <div className="absolute top-3 w-full flex justify-around">
                       {subTasks.map((_, idx) => (
-                        <div key={idx} className="w-0.5 h-3 bg-purple-300"></div>
+                        <div
+                          key={idx}
+                          className="w-0.5 h-3 bg-purple-300"
+                        ></div>
                       ))}
                     </div>
                   </>
@@ -273,23 +321,36 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-3 min-w-min">
               {subTasks.map((task) => (
-                <div key={task._id} className="flex-shrink-0" style={{ width: '240px' }}>
+                <div
+                  key={task._id}
+                  className="flex-shrink-0"
+                  style={{ width: "240px" }}
+                >
                   {editingTaskId === task._id ? (
                     <div className="border-2 border-purple-400 rounded-lg p-3 bg-purple-50 h-full space-y-2">
                       <div className="flex items-center gap-1 mb-2">
                         <Edit className="w-3 h-3 text-purple-600" />
-                        <p className="text-xs font-semibold text-gray-900">Edit Task</p>
+                        <p className="text-xs font-semibold text-gray-900">
+                          Edit Task
+                        </p>
                       </div>
                       <input
                         type="text"
-                        value={editForm.title || ''}
-                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                        value={editForm.title || ""}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, title: e.target.value })
+                        }
                         className="input-field text-xs"
                         placeholder="Work title"
                       />
                       <select
-                        value={editForm.taskType || ''}
-                        onChange={(e) => setEditForm({ ...editForm, taskType: e.target.value || undefined })}
+                        value={editForm.taskType || ""}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            taskType: e.target.value || undefined,
+                          })
+                        }
                         className="input-field text-xs"
                       >
                         <option value="">Task Type</option>
@@ -300,8 +361,13 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                         ))}
                       </select>
                       <select
-                        value={editForm.outcome || ''}
-                        onChange={(e) => setEditForm({ ...editForm, outcome: e.target.value as any })}
+                        value={editForm.outcome || ""}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            outcome: e.target.value as any,
+                          })
+                        }
                         className="input-field text-xs"
                       >
                         <option value="">Outcome</option>
@@ -315,15 +381,31 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                       </select>
                       <input
                         type="date"
-                        value={editForm.startDate?.toString().split('T')[0] || ''}
-                        onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value ? new Date(e.target.value) : undefined })}
+                        value={
+                          editForm.startDate?.toString().split("T")[0] || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            startDate: e.target.value
+                              ? new Date(e.target.value)
+                              : undefined,
+                          })
+                        }
                         className="input-field text-xs"
                         placeholder="Start Date"
                       />
                       <input
                         type="date"
-                        value={editForm.dueDate?.toString().split('T')[0] || ''}
-                        onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value ? new Date(e.target.value) : undefined })}
+                        value={editForm.dueDate?.toString().split("T")[0] || ""}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            dueDate: e.target.value
+                              ? new Date(e.target.value)
+                              : undefined,
+                          })
+                        }
                         className="input-field text-xs"
                         placeholder="Due Date"
                       />
@@ -348,29 +430,43 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                   ) : (
                     <div
                       className={`border-2 rounded-lg p-3 cursor-pointer transition-all h-full ${
-                        task.status === 'completed'
-                          ? 'bg-green-50 border-green-300 hover:border-green-400 hover:shadow-md'
-                          : task.status === 'in_progress'
-                          ? 'bg-blue-50 border-blue-300 hover:border-blue-400 hover:shadow-md'
-                          : task.status === 'blocked'
-                          ? 'bg-red-50 border-red-300 hover:border-red-400 hover:shadow-md'
-                          : 'bg-gray-50 border-gray-300 hover:border-gray-400 hover:shadow-md'
+                        task.status === "completed"
+                          ? "bg-green-50 border-green-300 hover:border-green-400 hover:shadow-md"
+                          : task.status === "in_progress"
+                          ? "bg-blue-50 border-blue-300 hover:border-blue-400 hover:shadow-md"
+                          : task.status === "blocked"
+                          ? "bg-red-50 border-red-300 hover:border-red-400 hover:shadow-md"
+                          : "bg-gray-50 border-gray-300 hover:border-gray-400 hover:shadow-md"
                       }`}
                       onClick={() => handleEditTask(task)}
                     >
                       {/* Status Icon */}
                       <div className="flex items-center justify-between mb-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          task.status === 'completed' ? 'bg-green-600' :
-                          task.status === 'in_progress' ? 'bg-blue-600' :
-                          task.status === 'blocked' ? 'bg-red-600' : 'bg-gray-400'
-                        }`}>
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                            task.status === "completed"
+                              ? "bg-green-600"
+                              : task.status === "in_progress"
+                              ? "bg-blue-600"
+                              : task.status === "blocked"
+                              ? "bg-red-600"
+                              : "bg-gray-400"
+                          }`}
+                        >
                           {getStatusIcon(task.status)}
                         </div>
-                        <span className={`badge text-xs ${getStatusBadge(task.status)}`}>
-                          {task.status === 'in_progress' ? 'Active' :
-                           task.status === 'completed' ? 'Done' :
-                           task.status === 'pending' ? 'Pending' : task.status}
+                        <span
+                          className={`badge text-xs ${getStatusBadge(
+                            task.status
+                          )}`}
+                        >
+                          {task.status === "in_progress"
+                            ? "Active"
+                            : task.status === "completed"
+                            ? "Done"
+                            : task.status === "pending"
+                            ? "Pending"
+                            : task.status}
                         </span>
                       </div>
 
@@ -401,12 +497,14 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                         <div className="mb-2 space-y-1 text-xs">
                           {task.startDate && (
                             <div className="text-gray-600">
-                              <span className="font-medium">Start:</span> {new Date(task.startDate).toLocaleDateString()}
+                              <span className="font-medium">Start:</span>{" "}
+                              {new Date(task.startDate).toLocaleDateString()}
                             </div>
                           )}
                           {task.dueDate && (
                             <div className="text-gray-600">
-                              <span className="font-medium">Due:</span> {new Date(task.dueDate).toLocaleDateString()}
+                              <span className="font-medium">Due:</span>{" "}
+                              {new Date(task.dueDate).toLocaleDateString()}
                             </div>
                           )}
                         </div>
@@ -415,58 +513,65 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                       {/* Outcome */}
                       {task.outcome && (
                         <div className="mb-2">
-                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                            task.outcome === 'completed' ? 'bg-green-100 text-green-700' :
-                            task.outcome === 'returned' ? 'bg-red-100 text-red-700' :
-                            task.outcome === 'repaired' ? 'bg-blue-100 text-blue-700' :
-                            task.outcome === 'replaced' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {task.outcome.replace('_', ' ').toUpperCase()}
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                              task.outcome === "completed"
+                                ? "bg-green-100 text-green-700"
+                                : task.outcome === "returned"
+                                ? "bg-red-100 text-red-700"
+                                : task.outcome === "repaired"
+                                ? "bg-blue-100 text-blue-700"
+                                : task.outcome === "replaced"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {task.outcome.replace("_", " ").toUpperCase()}
                           </span>
                         </div>
                       )}
 
                       {/* Actions */}
                       <div onClick={(e) => e.stopPropagation()}>
-                        {task.status === 'pending' && (
+                        {task.status === "pending" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleUpdateStatus(task._id, 'in_progress');
+                              handleUpdateStatus(task._id, "in_progress");
                             }}
                             className="w-full px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
                           >
                             Start
                           </button>
                         )}
-                        {task.status === 'in_progress' && (
+                        {task.status === "in_progress" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleUpdateStatus(task._id, 'completed');
+                              handleUpdateStatus(task._id, "completed");
                             }}
                             className="w-full px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
                           >
                             Complete
                           </button>
                         )}
-                        {task.status === 'completed' && (
+                        {task.status === "completed" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleUpdateStatus(task._id, 'in_progress');
+                              handleUpdateStatus(task._id, "in_progress");
                             }}
                             className="w-full px-2 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
                           >
                             Reopen
                           </button>
                         )}
-                        {(task.status === 'blocked' || task.status === 'on_hold') && (
+                        {(task.status === "blocked" ||
+                          task.status === "on_hold") && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleUpdateStatus(task._id, 'in_progress');
+                              handleUpdateStatus(task._id, "in_progress");
                             }}
                             className="w-full px-2 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
                           >
