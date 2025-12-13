@@ -34,7 +34,7 @@ const BulkImportPanel: React.FC<BulkImportPanelProps> = ({ onImport }) => {
       const model = columns[5];
       const description = columns[6];
       const problem = columns[7];
-      const billNo = columns[1];
+      const voucherNo = columns[1];
 
       // Skip empty rows
       if (!customerName.trim() || !model.trim()) return;
@@ -50,7 +50,7 @@ const BulkImportPanel: React.FC<BulkImportPanelProps> = ({ onImport }) => {
         model: model.trim(),
         description: description.trim(),
         problem: problem.trim(),
-        billNo: billNo.trim(),
+        voucherNo: voucherNo.trim(),
       });
     });
 
@@ -165,13 +165,13 @@ const BulkImportPanel: React.FC<BulkImportPanelProps> = ({ onImport }) => {
                     #
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                    Voucher No
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                     Customer Name
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                     Phone
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    Address
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                     Model
@@ -190,14 +190,14 @@ const BulkImportPanel: React.FC<BulkImportPanelProps> = ({ onImport }) => {
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {index + 1}
                     </td>
+                    <td className="px-4 py-3 text-sm text-purple-600 font-medium">
+                      {order.voucherNo}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-900 font-medium">
                       {order.customerName}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {order.phone}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {order.address}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {order.model}

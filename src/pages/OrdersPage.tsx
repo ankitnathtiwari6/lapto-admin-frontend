@@ -12,19 +12,8 @@ const OrdersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [workStatusFilter, setWorkStatusFilter] = useState<'all' | 'todo' | 'pending' | 'completed'>('all');
 
-  // Statistics state
-  const [stats, setStats] = useState({
-    totalOrderValue: 0,
-    totalPaymentReceived: 0,
-    totalPending: 0,
-    totalCompletedValue: 0
-  });
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-
   useEffect(() => {
     fetchOrders();
-    fetchStats();
   }, [workStatusFilter]);
 
   const fetchOrders = async () => {
@@ -41,28 +30,6 @@ const OrdersPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const params: any = {};
-      if (fromDate) params.fromDate = fromDate;
-      if (toDate) params.toDate = toDate;
-
-      const { data } = await api.get('/orders/stats', { params });
-      setStats({
-        totalOrderValue: data.data.totalOrderValue || 0,
-        totalPaymentReceived: data.data.totalPaymentReceived || 0,
-        totalPending: data.data.totalPending || 0,
-        totalCompletedValue: data.data.totalCompletedValue || 0
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
-  const handleApplyFilter = () => {
-    fetchStats();
   };
 
   const getStageBadge = (stageName: string) => {
@@ -100,120 +67,6 @@ const OrdersPage: React.FC = () => {
           <Plus className="w-5 h-5" />
           New Order
         </Link>
-      </div>
-
-      {/* Date Filter */}
-      <div className="card">
-        <div className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              From Date
-            </label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              To Date
-            </label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <button onClick={handleApplyFilter} className="btn-primary whitespace-nowrap">
-            Apply Filter
-          </button>
-          {(fromDate || toDate) && (
-            <button
-              onClick={() => {
-                setFromDate('');
-                setToDate('');
-                fetchStats();
-              }}
-              className="btn-secondary whitespace-nowrap"
-            >
-              Clear Filter
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Order Value */}
-        <div className="card bg-gradient-to-br from-purple-50 to-white border-purple-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600 mb-1">Total Order Value</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ₹{stats.totalOrderValue.toLocaleString('en-IN')}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Payment Received */}
-        <div className="card bg-gradient-to-br from-green-50 to-white border-green-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-600 mb-1">Payment Received</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ₹{stats.totalPaymentReceived.toLocaleString('en-IN')}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Pending */}
-        <div className="card bg-gradient-to-br from-orange-50 to-white border-orange-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-orange-600 mb-1">Total Pending</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ₹{stats.totalPending.toLocaleString('en-IN')}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Completed Value */}
-        <div className="card bg-gradient-to-br from-blue-50 to-white border-blue-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-blue-600 mb-1">Completed Value</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ₹{stats.totalCompletedValue.toLocaleString('en-IN')}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Work Status Filter Tabs */}
@@ -303,7 +156,7 @@ const OrdersPage: React.FC = () => {
                   <th>Customer</th>
                   <th>Device</th>
                   <th>Stage</th>
-                  <th>Technician</th>
+                  <th>Assigned Engineer</th>
                   <th>Date</th>
                   <th>Action</th>
                 </tr>
@@ -354,15 +207,20 @@ const OrdersPage: React.FC = () => {
                     <td>
                       {order.assignedTo ? (
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center">
-                            <span className="text-purple-600 font-semibold text-xs">
-                              {order.assignedTo.userName?.charAt(0) || 'E'}
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                            <span className="text-purple-700 font-semibold text-xs">
+                              {order.assignedTo.userName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'EN'}
                             </span>
                           </div>
-                          <span className="text-sm">{order.assignedTo.userName}</span>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{order.assignedTo.userName}</p>
+                            <p className="text-xs text-gray-500">Engineer</p>
+                          </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-sm">Unassigned</span>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          Not Assigned
+                        </span>
                       )}
                     </td>
                     <td className="text-gray-600">

@@ -10,6 +10,7 @@ import type { DeviceType, ServiceType, User } from "../types";
 import type { Customer } from "../services/customerService";
 import { Plus, ArrowLeft, X, Trash2 } from "lucide-react";
 import CustomerCreateModal from "../components/CustomerCreateModal";
+import ServiceCreateModal from "../components/ServiceCreateModal";
 import BulkImportPanel from "../components/BulkImportPanel";
 
 interface OrderRow {
@@ -30,6 +31,7 @@ interface OrderRow {
   password: string;
   problemDescription: string;
   engineerId: string;
+  voucherNo: string;
 }
 
 const NewOrderPage: React.FC = () => {
@@ -63,6 +65,10 @@ const NewOrderPage: React.FC = () => {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [activeRowId, setActiveRowId] = useState<string>("");
 
+  // Service creation modal state
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [activeServiceRowId, setActiveServiceRowId] = useState<string>("");
+
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -83,6 +89,7 @@ const NewOrderPage: React.FC = () => {
       password: "",
       problemDescription: "",
       engineerId: "",
+      voucherNo: "",
     };
   }
 
@@ -238,6 +245,7 @@ const NewOrderPage: React.FC = () => {
       model: data.model,
       problemDescription: data.description,
       serviceSearchQuery: data.problem,
+      voucherNo: data.voucherNo || "",
     }));
 
     // Replace current order rows with imported ones
@@ -299,6 +307,7 @@ const NewOrderPage: React.FC = () => {
       const deviceType = deviceTypes.find((d) => d._id === row.deviceTypeId);
       const orderData: CreateOrderData = {
         orderType: "service",
+        voucherNo: row.voucherNo || undefined,
         customer: {
           customerId: row.customer._id,
           name: row.customer.fullName,
@@ -346,7 +355,9 @@ const NewOrderPage: React.FC = () => {
       setOrderRows((prevRows) => {
         const filteredRows = prevRows.filter((r) => r.id !== rowId);
         // If no rows left, add a new empty row
-        return filteredRows.length === 0 ? [createEmptyOrderRow()] : filteredRows;
+        return filteredRows.length === 0
+          ? [createEmptyOrderRow()]
+          : filteredRows;
       });
     } catch (error: any) {
       alert(error.response?.data?.message || "Error creating order");
@@ -381,7 +392,8 @@ const NewOrderPage: React.FC = () => {
             New Service Orders
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Add multiple orders in spreadsheet style or bulk import from Google Sheets
+            Add multiple orders in spreadsheet style or bulk import from Google
+            Sheets
           </p>
         </div>
       </div>
@@ -419,64 +431,497 @@ const NewOrderPage: React.FC = () => {
         <>
           {/* Desktop Table View - Hidden on mobile */}
           <div className="hidden lg:block rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead className="bg-gray-50 border-b-2 border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 w-12">
-                  #
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[220px]">
-                  Customer *
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[280px]">
-                  Services *
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">
-                  Device Type *
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
-                  Brand
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
-                  Model *
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[240px]">
-                  Problem *
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">
-                  Engineer
-                </th>
-                <th className="px-2 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {orderRows.map((row, index) => (
-                <tr key={row.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border-r border-gray-200 text-sm text-gray-600 text-center font-medium">
-                    {index + 1}
-                  </td>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-gray-50 border-b-2 border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 w-12">
+                      #
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
+                      Voucher No
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[220px]">
+                      Customer *
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[280px]">
+                      Services *
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">
+                      Device Type *
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
+                      Brand
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]">
+                      Model *
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[240px]">
+                      Problem *
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">
+                      Engineer
+                    </th>
+                    <th className="px-2 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {orderRows.map((row, index) => (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 border-r border-gray-200 text-sm text-gray-600 text-center font-medium">
+                        {index + 1}
+                      </td>
 
-                  {/* Customer Cell */}
-                  <td className="px-4 py-3 border-r border-gray-200 relative">
-                    {row.customer ? (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-md text-sm font-medium">
-                          {row.customer.fullName}
-                          <button
-                            onClick={() =>
-                              updateOrderRow(row.id, {
-                                customer: null,
-                                customerSearchQuery: "",
-                              })
+                      {/* Voucher No Cell */}
+                      <td className="px-4 py-3 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={row.voucherNo}
+                          onChange={(e) =>
+                            updateOrderRow(row.id, {
+                              voucherNo: e.target.value,
+                            })
+                          }
+                          placeholder="Enter voucher no..."
+                          className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </td>
+
+                      {/* Customer Cell */}
+                      <td className="px-4 py-3 border-r border-gray-200 relative">
+                        {row.customer ? (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-md text-sm font-medium">
+                              {row.customer.fullName}
+                              <button
+                                onClick={() =>
+                                  updateOrderRow(row.id, {
+                                    customer: null,
+                                    customerSearchQuery: "",
+                                  })
+                                }
+                                className="hover:text-purple-900"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              type="text"
+                              value={row.customerSearchQuery}
+                              onChange={(e) =>
+                                handleCustomerSearch(row.id, e.target.value)
+                              }
+                              onFocus={() => {
+                                updateOrderRow(row.id, {
+                                  showCustomerDropdown: true,
+                                });
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => {
+                                  updateOrderRow(row.id, {
+                                    showCustomerDropdown: false,
+                                  });
+                                }, 200);
+                              }}
+                              placeholder="Search customer..."
+                              className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            />
+                            {row.showCustomerDropdown && (
+                              <div className="absolute z-50 w-72 mt-1 bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                                {row.customerSearchQuery.length >= 2 ? (
+                                  customerSuggestions[row.id]?.length > 0 ? (
+                                    customerSuggestions[row.id].map(
+                                      (customer) => (
+                                        <button
+                                          key={customer._id}
+                                          type="button"
+                                          onClick={() =>
+                                            handleCustomerSelect(
+                                              row.id,
+                                              customer
+                                            )
+                                          }
+                                          className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b"
+                                        >
+                                          <div className="font-medium text-sm text-gray-900">
+                                            {customer.fullName}
+                                          </div>
+                                          <div className="text-xs text-gray-600 mt-0.5">
+                                            {customer.phone}
+                                          </div>
+                                        </button>
+                                      )
+                                    )
+                                  ) : (
+                                    <div className="px-4 py-3 text-sm text-gray-500">
+                                      No customers found
+                                    </div>
+                                  )
+                                ) : (
+                                  <div className="px-4 py-3 text-sm text-gray-500">
+                                    Type at least 2 characters to search
+                                  </div>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setActiveRowId(row.id);
+                                    setShowCustomerModal(true);
+                                    updateOrderRow(row.id, {
+                                      showCustomerDropdown: false,
+                                    });
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-purple-50 text-purple-600 font-medium text-sm border-t border-gray-200"
+                                >
+                                  + New Customer
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </td>
+
+                      {/* Services Cell */}
+                      <td className="px-4 py-3 border-r border-gray-200 relative">
+                        <div className="space-y-1.5">
+                          {row.services.map((service) => (
+                            <div
+                              key={service.serviceType._id}
+                              className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-md text-sm"
+                            >
+                              <span className="flex-1 font-medium text-blue-900">
+                                {service.serviceType.name}
+                              </span>
+                              <input
+                                type="number"
+                                min="1"
+                                value={service.quantity}
+                                onChange={(e) =>
+                                  updateServiceQuantity(
+                                    row.id,
+                                    service.serviceType._id,
+                                    parseInt(e.target.value) || 1
+                                  )
+                                }
+                                className="w-14 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                              />
+                              <button
+                                onClick={() =>
+                                  removeService(row.id, service.serviceType._id)
+                                }
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                          <input
+                            type="text"
+                            value={row.serviceSearchQuery}
+                            onChange={(e) =>
+                              handleServiceSearch(row.id, e.target.value)
                             }
-                            className="hover:text-purple-900"
+                            onFocus={() => {
+                              updateOrderRow(row.id, {
+                                showServiceDropdown: true,
+                              });
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                updateOrderRow(row.id, {
+                                  showServiceDropdown: false,
+                                });
+                              }, 200);
+                            }}
+                            placeholder="Add service..."
+                            className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                          {row.showServiceDropdown && (
+                            <div className="absolute z-50 w-72 mt-1 bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+                              {serviceSuggestions[row.id]?.length > 0 ? (
+                                serviceSuggestions[row.id].map(
+                                  (serviceType) => (
+                                    <button
+                                      key={serviceType._id}
+                                      type="button"
+                                      onClick={() =>
+                                        handleServiceSelect(row.id, serviceType)
+                                      }
+                                      className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b"
+                                    >
+                                      <div className="font-medium text-sm text-gray-900">
+                                        {serviceType.name}
+                                      </div>
+                                      {serviceType.description && (
+                                        <div className="text-xs text-gray-600 mt-0.5">
+                                          {serviceType.description}
+                                        </div>
+                                      )}
+                                    </button>
+                                  )
+                                )
+                              ) : (
+                                <div className="px-4 py-3 text-sm text-gray-500">
+                                  {row.serviceSearchQuery
+                                    ? "No services found"
+                                    : "Start typing to search services"}
+                                </div>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setActiveServiceRowId(row.id);
+                                  setShowServiceModal(true);
+                                  updateOrderRow(row.id, {
+                                    showServiceDropdown: false,
+                                  });
+                                }}
+                                className="w-full px-4 py-3 text-left hover:bg-blue-50 text-blue-600 font-medium text-sm border-t border-gray-200"
+                              >
+                                + New Service
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Device Type Cell */}
+                      <td className="px-4 py-3 border-r border-gray-200">
+                        <select
+                          value={row.deviceTypeId}
+                          onChange={(e) =>
+                            updateOrderRow(row.id, {
+                              deviceTypeId: e.target.value,
+                            })
+                          }
+                          className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="">Select device...</option>
+                          {deviceTypes.map((dt) => (
+                            <option key={dt._id} value={dt._id}>
+                              {dt.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Brand Cell */}
+                      <td className="px-4 py-3 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={row.brand}
+                          onChange={(e) =>
+                            updateOrderRow(row.id, { brand: e.target.value })
+                          }
+                          placeholder="Enter brand..."
+                          className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </td>
+
+                      {/* Model Cell */}
+                      <td className="px-4 py-3 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={row.model}
+                          onChange={(e) =>
+                            updateOrderRow(row.id, { model: e.target.value })
+                          }
+                          placeholder="Enter model..."
+                          className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </td>
+
+                      {/* Problem Cell - Made resizable */}
+                      <td className="px-4 py-3 border-r border-gray-200">
+                        <textarea
+                          value={row.problemDescription}
+                          onChange={(e) =>
+                            updateOrderRow(row.id, {
+                              problemDescription: e.target.value,
+                            })
+                          }
+                          placeholder="Describe the problem..."
+                          rows={2}
+                          className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                        />
+                      </td>
+
+                      {/* Engineer Cell */}
+                      <td className="px-4 py-3 border-r border-gray-200">
+                        <select
+                          value={row.engineerId}
+                          onChange={(e) =>
+                            updateOrderRow(row.id, {
+                              engineerId: e.target.value,
+                            })
+                          }
+                          className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="">Assign later...</option>
+                          {engineers.map((eng) => (
+                            <option key={eng._id} value={eng._id}>
+                              {eng.fullName}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Actions Cell */}
+                      <td className="px-2 py-2 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleSaveRow(row.id)}
+                            disabled={savingRows[row.id]}
+                            className="px-2.5 py-1.5 text-sm font-medium text-green-600 hover:text-green-800 hover:bg-green-50 rounded disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                            title="Save order"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            {savingRows[row.id] ? (
+                              <svg
+                                className="animate-spin h-4 w-4"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                  fill="none"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                />
+                              </svg>
+                            ) : (
+                              "Save"
+                            )}
                           </button>
+                          <button
+                            onClick={() => removeOrderRow(row.id)}
+                            disabled={orderRows.length === 1}
+                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                            title="Delete row"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Add Row Button */}
+            <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-center">
+              <button
+                onClick={addNewOrderRow}
+                className="flex items-center gap-2 text-purple-600 hover:text-purple-800 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Add New Order Row
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Card View - Hidden on desktop */}
+          <div className="lg:hidden space-y-4">
+            {orderRows.map((row, index) => (
+              <div
+                key={row.id}
+                className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+              >
+                {/* Card Header */}
+                <div className="bg-purple-600 text-white px-4 py-3 flex items-center justify-between">
+                  <h3 className="font-semibold">Order #{index + 1}</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSaveRow(row.id)}
+                      disabled={savingRows[row.id]}
+                      className="px-4 py-2 bg-white text-purple-600 rounded-lg font-medium disabled:opacity-50"
+                      title="Save order"
+                    >
+                      {savingRows[row.id] ? (
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      ) : (
+                        "Save"
+                      )}
+                    </button>
+                    {orderRows.length > 1 && (
+                      <button
+                        onClick={() => removeOrderRow(row.id)}
+                        className="p-2 bg-white text-red-600 rounded-full"
+                        title="Delete order"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Content */}
+                <div className="p-4 space-y-4">
+                  {/* Voucher No */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Voucher No
+                    </label>
+                    <input
+                      type="text"
+                      value={row.voucherNo}
+                      onChange={(e) =>
+                        updateOrderRow(row.id, { voucherNo: e.target.value })
+                      }
+                      placeholder="Enter voucher number..."
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Customer */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Customer *
+                    </label>
+                    {row.customer ? (
+                      <div className="flex items-center gap-2">
+                        <span className="flex-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-md text-sm font-medium">
+                          {row.customer.fullName}
                         </span>
+                        <button
+                          onClick={() =>
+                            updateOrderRow(row.id, {
+                              customer: null,
+                              customerSearchQuery: "",
+                            })
+                          }
+                          className="p-2 text-purple-600 hover:text-purple-800"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
                       </div>
                     ) : (
                       <>
@@ -499,10 +944,10 @@ const NewOrderPage: React.FC = () => {
                             }, 200);
                           }}
                           placeholder="Search customer..."
-                          className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                         {row.showCustomerDropdown && (
-                          <div className="absolute z-50 w-72 mt-1 bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                          <div className="relative z-50 mt-2 bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
                             {row.customerSearchQuery.length >= 2 ? (
                               customerSuggestions[row.id]?.length > 0 ? (
                                 customerSuggestions[row.id].map((customer) => (
@@ -514,21 +959,21 @@ const NewOrderPage: React.FC = () => {
                                     }
                                     className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b"
                                   >
-                                    <div className="font-medium text-sm text-gray-900">
+                                    <div className="font-medium text-base text-gray-900">
                                       {customer.fullName}
                                     </div>
-                                    <div className="text-xs text-gray-600 mt-0.5">
+                                    <div className="text-sm text-gray-600 mt-1">
                                       {customer.phone}
                                     </div>
                                   </button>
                                 ))
                               ) : (
-                                <div className="px-4 py-3 text-sm text-gray-500">
+                                <div className="px-4 py-3 text-base text-gray-500">
                                   No customers found
                                 </div>
                               )
                             ) : (
-                              <div className="px-4 py-3 text-sm text-gray-500">
+                              <div className="px-4 py-3 text-base text-gray-500">
                                 Type at least 2 characters to search
                               </div>
                             )}
@@ -540,7 +985,7 @@ const NewOrderPage: React.FC = () => {
                                   showCustomerDropdown: false,
                                 });
                               }}
-                              className="w-full px-4 py-3 text-left hover:bg-purple-50 text-purple-600 font-medium text-sm border-t border-gray-200"
+                              className="w-full px-4 py-3 text-left hover:bg-purple-50 text-purple-600 font-medium text-base border-t border-gray-200"
                             >
                               + New Customer
                             </button>
@@ -548,17 +993,20 @@ const NewOrderPage: React.FC = () => {
                         )}
                       </>
                     )}
-                  </td>
+                  </div>
 
-                  {/* Services Cell */}
-                  <td className="px-4 py-3 border-r border-gray-200 relative">
-                    <div className="space-y-1.5">
+                  {/* Services */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Services *
+                    </label>
+                    <div className="space-y-2">
                       {row.services.map((service) => (
                         <div
                           key={service.serviceType._id}
-                          className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-md text-sm"
+                          className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-md"
                         >
-                          <span className="flex-1 font-medium text-blue-900">
+                          <span className="flex-1 text-sm font-medium text-blue-900">
                             {service.serviceType.name}
                           </span>
                           <input
@@ -572,15 +1020,15 @@ const NewOrderPage: React.FC = () => {
                                 parseInt(e.target.value) || 1
                               )
                             }
-                            className="w-14 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                            className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-sm"
                           />
                           <button
                             onClick={() =>
                               removeService(row.id, service.serviceType._id)
                             }
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-red-700 p-1"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-5 h-5" />
                           </button>
                         </div>
                       ))}
@@ -591,50 +1039,77 @@ const NewOrderPage: React.FC = () => {
                           handleServiceSearch(row.id, e.target.value)
                         }
                         onFocus={() => {
-                          if (serviceSuggestions[row.id]?.length > 0) {
+                          updateOrderRow(row.id, {
+                            showServiceDropdown: true,
+                          });
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => {
                             updateOrderRow(row.id, {
-                              showServiceDropdown: true,
+                              showServiceDropdown: false,
                             });
-                          }
+                          }, 200);
                         }}
                         placeholder="Add service..."
-                        className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
-                      {row.showServiceDropdown &&
-                        serviceSuggestions[row.id]?.length > 0 && (
-                          <div className="absolute z-50 w-72 mt-1 bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
-                            {serviceSuggestions[row.id].map((serviceType) => (
+                      {row.showServiceDropdown && (
+                        <div className="relative z-50 mt-2 bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+                          {serviceSuggestions[row.id]?.length > 0 ? (
+                            serviceSuggestions[row.id].map((serviceType) => (
                               <button
                                 key={serviceType._id}
                                 type="button"
                                 onClick={() =>
                                   handleServiceSelect(row.id, serviceType)
                                 }
-                                className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b last:border-b-0"
+                                className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b"
                               >
-                                <div className="font-medium text-sm text-gray-900">
+                                <div className="font-medium text-base text-gray-900">
                                   {serviceType.name}
                                 </div>
                                 {serviceType.description && (
-                                  <div className="text-xs text-gray-600 mt-0.5">
+                                  <div className="text-sm text-gray-600 mt-1">
                                     {serviceType.description}
                                   </div>
                                 )}
                               </button>
-                            ))}
-                          </div>
-                        )}
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-base text-gray-500">
+                              {row.serviceSearchQuery
+                                ? "No services found"
+                                : "Start typing to search services"}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => {
+                              setActiveServiceRowId(row.id);
+                              setShowServiceModal(true);
+                              updateOrderRow(row.id, {
+                                showServiceDropdown: false,
+                              });
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-blue-50 text-blue-600 font-medium text-base border-t border-gray-200"
+                          >
+                            + New Service
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </td>
+                  </div>
 
-                  {/* Device Type Cell */}
-                  <td className="px-4 py-3 border-r border-gray-200">
+                  {/* Device Type */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Device Type *
+                    </label>
                     <select
                       value={row.deviceTypeId}
                       onChange={(e) =>
                         updateOrderRow(row.id, { deviceTypeId: e.target.value })
                       }
-                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
                       <option value="">Select device...</option>
                       {deviceTypes.map((dt) => (
@@ -643,10 +1118,13 @@ const NewOrderPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                  </td>
+                  </div>
 
-                  {/* Brand Cell */}
-                  <td className="px-4 py-3 border-r border-gray-200">
+                  {/* Brand */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Brand
+                    </label>
                     <input
                       type="text"
                       value={row.brand}
@@ -654,12 +1132,15 @@ const NewOrderPage: React.FC = () => {
                         updateOrderRow(row.id, { brand: e.target.value })
                       }
                       placeholder="Enter brand..."
-                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
-                  </td>
+                  </div>
 
-                  {/* Model Cell */}
-                  <td className="px-4 py-3 border-r border-gray-200">
+                  {/* Model */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Model *
+                    </label>
                     <input
                       type="text"
                       value={row.model}
@@ -667,12 +1148,15 @@ const NewOrderPage: React.FC = () => {
                         updateOrderRow(row.id, { model: e.target.value })
                       }
                       placeholder="Enter model..."
-                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
-                  </td>
+                  </div>
 
-                  {/* Problem Cell - Made resizable */}
-                  <td className="px-4 py-3 border-r border-gray-200">
+                  {/* Problem Description */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Problem Description *
+                    </label>
                     <textarea
                       value={row.problemDescription}
                       onChange={(e) =>
@@ -681,19 +1165,22 @@ const NewOrderPage: React.FC = () => {
                         })
                       }
                       placeholder="Describe the problem..."
-                      rows={2}
-                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                      rows={4}
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
                     />
-                  </td>
+                  </div>
 
-                  {/* Engineer Cell */}
-                  <td className="px-4 py-3 border-r border-gray-200">
+                  {/* Engineer */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Engineer
+                    </label>
                     <select
                       value={row.engineerId}
                       onChange={(e) =>
                         updateOrderRow(row.id, { engineerId: e.target.value })
                       }
-                      className="w-full h-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
                       <option value="">Assign later...</option>
                       {engineers.map((eng) => (
@@ -702,399 +1189,20 @@ const NewOrderPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                  </td>
-
-                  {/* Actions Cell */}
-                  <td className="px-2 py-2 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        onClick={() => handleSaveRow(row.id)}
-                        disabled={savingRows[row.id]}
-                        className="px-2.5 py-1.5 text-sm font-medium text-green-600 hover:text-green-800 hover:bg-green-50 rounded disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
-                        title="Save order"
-                      >
-                        {savingRows[row.id] ? (
-                          <svg
-                            className="animate-spin h-4 w-4"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                              fill="none"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                        ) : (
-                          "Save"
-                        )}
-                      </button>
-                      <button
-                        onClick={() => removeOrderRow(row.id)}
-                        disabled={orderRows.length === 1}
-                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
-                        title="Delete row"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Add Row Button */}
-        <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-center">
-          <button
-            onClick={addNewOrderRow}
-            className="flex items-center gap-2 text-purple-600 hover:text-purple-800 text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Add New Order Row
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Card View - Hidden on desktop */}
-      <div className="lg:hidden space-y-4">
-        {orderRows.map((row, index) => (
-          <div
-            key={row.id}
-            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-          >
-            {/* Card Header */}
-            <div className="bg-purple-600 text-white px-4 py-3 flex items-center justify-between">
-              <h3 className="font-semibold">Order #{index + 1}</h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleSaveRow(row.id)}
-                  disabled={savingRows[row.id]}
-                  className="px-4 py-2 bg-white text-purple-600 rounded-lg font-medium disabled:opacity-50"
-                  title="Save order"
-                >
-                  {savingRows[row.id] ? (
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                  ) : (
-                    "Save"
-                  )}
-                </button>
-                {orderRows.length > 1 && (
-                  <button
-                    onClick={() => removeOrderRow(row.id)}
-                    className="p-2 bg-white text-red-600 rounded-full"
-                    title="Delete order"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Card Content */}
-            <div className="p-4 space-y-4">
-              {/* Customer */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Customer *
-                </label>
-                {row.customer ? (
-                  <div className="flex items-center gap-2">
-                    <span className="flex-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-md text-sm font-medium">
-                      {row.customer.fullName}
-                    </span>
-                    <button
-                      onClick={() =>
-                        updateOrderRow(row.id, {
-                          customer: null,
-                          customerSearchQuery: "",
-                        })
-                      }
-                      className="p-2 text-purple-600 hover:text-purple-800"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
                   </div>
-                ) : (
-                  <>
-                    <input
-                      type="text"
-                      value={row.customerSearchQuery}
-                      onChange={(e) =>
-                        handleCustomerSearch(row.id, e.target.value)
-                      }
-                      onFocus={() => {
-                        updateOrderRow(row.id, {
-                          showCustomerDropdown: true,
-                        });
-                      }}
-                      onBlur={() => {
-                        setTimeout(() => {
-                          updateOrderRow(row.id, {
-                            showCustomerDropdown: false,
-                          });
-                        }, 200);
-                      }}
-                      placeholder="Search customer..."
-                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    {row.showCustomerDropdown && (
-                      <div className="relative z-50 mt-2 bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                        {row.customerSearchQuery.length >= 2 ? (
-                          customerSuggestions[row.id]?.length > 0 ? (
-                            customerSuggestions[row.id].map((customer) => (
-                              <button
-                                key={customer._id}
-                                type="button"
-                                onClick={() =>
-                                  handleCustomerSelect(row.id, customer)
-                                }
-                                className="w-full px-4 py-3 text-left hover:bg-purple-50 border-b"
-                              >
-                                <div className="font-medium text-base text-gray-900">
-                                  {customer.fullName}
-                                </div>
-                                <div className="text-sm text-gray-600 mt-1">
-                                  {customer.phone}
-                                </div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-4 py-3 text-base text-gray-500">
-                              No customers found
-                            </div>
-                          )
-                        ) : (
-                          <div className="px-4 py-3 text-base text-gray-500">
-                            Type at least 2 characters to search
-                          </div>
-                        )}
-                        <button
-                          onClick={() => {
-                            setActiveRowId(row.id);
-                            setShowCustomerModal(true);
-                            updateOrderRow(row.id, {
-                              showCustomerDropdown: false,
-                            });
-                          }}
-                          className="w-full px-4 py-3 text-left hover:bg-purple-50 text-purple-600 font-medium text-base border-t border-gray-200"
-                        >
-                          + New Customer
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Services */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Services *
-                </label>
-                <div className="space-y-2">
-                  {row.services.map((service) => (
-                    <div
-                      key={service.serviceType._id}
-                      className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-md"
-                    >
-                      <span className="flex-1 text-sm font-medium text-blue-900">
-                        {service.serviceType.name}
-                      </span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={service.quantity}
-                        onChange={(e) =>
-                          updateServiceQuantity(
-                            row.id,
-                            service.serviceType._id,
-                            parseInt(e.target.value) || 1
-                          )
-                        }
-                        className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-sm"
-                      />
-                      <button
-                        onClick={() =>
-                          removeService(row.id, service.serviceType._id)
-                        }
-                        className="text-red-500 hover:text-red-700 p-1"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                  ))}
-                  <input
-                    type="text"
-                    value={row.serviceSearchQuery}
-                    onChange={(e) =>
-                      handleServiceSearch(row.id, e.target.value)
-                    }
-                    onFocus={() => {
-                      if (serviceSuggestions[row.id]?.length > 0) {
-                        updateOrderRow(row.id, {
-                          showServiceDropdown: true,
-                        });
-                      }
-                    }}
-                    placeholder="Add service..."
-                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                  {row.showServiceDropdown &&
-                    serviceSuggestions[row.id]?.length > 0 && (
-                      <div className="relative z-50 mt-2 bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
-                        {serviceSuggestions[row.id].map((serviceType) => (
-                          <button
-                            key={serviceType._id}
-                            type="button"
-                            onClick={() =>
-                              handleServiceSelect(row.id, serviceType)
-                            }
-                            className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b last:border-b-0"
-                          >
-                            <div className="font-medium text-base text-gray-900">
-                              {serviceType.name}
-                            </div>
-                            {serviceType.description && (
-                              <div className="text-sm text-gray-600 mt-1">
-                                {serviceType.description}
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                 </div>
               </div>
+            ))}
 
-              {/* Device Type */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Device Type *
-                </label>
-                <select
-                  value={row.deviceTypeId}
-                  onChange={(e) =>
-                    updateOrderRow(row.id, { deviceTypeId: e.target.value })
-                  }
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">Select device...</option>
-                  {deviceTypes.map((dt) => (
-                    <option key={dt._id} value={dt._id}>
-                      {dt.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Brand */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Brand
-                </label>
-                <input
-                  type="text"
-                  value={row.brand}
-                  onChange={(e) =>
-                    updateOrderRow(row.id, { brand: e.target.value })
-                  }
-                  placeholder="Enter brand..."
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* Model */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Model *
-                </label>
-                <input
-                  type="text"
-                  value={row.model}
-                  onChange={(e) =>
-                    updateOrderRow(row.id, { model: e.target.value })
-                  }
-                  placeholder="Enter model..."
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* Problem Description */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Problem Description *
-                </label>
-                <textarea
-                  value={row.problemDescription}
-                  onChange={(e) =>
-                    updateOrderRow(row.id, {
-                      problemDescription: e.target.value,
-                    })
-                  }
-                  placeholder="Describe the problem..."
-                  rows={4}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
-                />
-              </div>
-
-              {/* Engineer */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Engineer
-                </label>
-                <select
-                  value={row.engineerId}
-                  onChange={(e) =>
-                    updateOrderRow(row.id, { engineerId: e.target.value })
-                  }
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">Assign later...</option>
-                  {engineers.map((eng) => (
-                    <option key={eng._id} value={eng._id}>
-                      {eng.fullName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            {/* Add New Order Button - Mobile */}
+            <button
+              onClick={addNewOrderRow}
+              className="flex items-center justify-center gap-2 px-4 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+            >
+              <Plus className="w-5 h-5" />
+              Add New Order
+            </button>
           </div>
-        ))}
-
-        {/* Add New Order Button - Mobile */}
-        <button
-          onClick={addNewOrderRow}
-          className="flex items-center justify-center gap-2 px-4 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          Add New Order
-        </button>
-      </div>
 
           {/* Summary */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -1131,6 +1239,30 @@ const NewOrderPage: React.FC = () => {
           setActiveRowId("");
         }}
         prefillData={{}}
+      />
+
+      {/* Service Creation Modal */}
+      <ServiceCreateModal
+        isOpen={showServiceModal}
+        onClose={() => {
+          setShowServiceModal(false);
+          setActiveServiceRowId("");
+        }}
+        onServiceCreated={(service) => {
+          // Add to the main list of service types
+          setServiceTypes((prev) => [...prev, service]);
+          // Add to the current row
+          if (activeServiceRowId) {
+            handleServiceSelect(activeServiceRowId, service);
+          }
+          setShowServiceModal(false);
+          setActiveServiceRowId("");
+        }}
+        prefillData={{
+          name:
+            orderRows.find((r) => r.id === activeServiceRowId)
+              ?.serviceSearchQuery || "",
+        }}
       />
     </div>
   );
