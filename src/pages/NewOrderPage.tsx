@@ -41,6 +41,7 @@ const NewOrderPage: React.FC = () => {
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [engineers, setEngineers] = useState<User[]>([]);
+  const [defaultDeviceTypeId, setDefaultDeviceTypeId] = useState<string>("");
   const [savingRows, setSavingRows] = useState<{ [rowId: string]: boolean }>(
     {}
   );
@@ -82,7 +83,7 @@ const NewOrderPage: React.FC = () => {
       services: [],
       serviceSearchQuery: "",
       showServiceDropdown: false,
-      deviceTypeId: "",
+      deviceTypeId: defaultDeviceTypeId,
       brand: "",
       model: "",
       serialNumber: "",
@@ -100,9 +101,25 @@ const NewOrderPage: React.FC = () => {
         serviceTypeService.getAll({ isActive: true }),
         userService.getEngineers(),
       ]);
-      setDeviceTypes(devicesRes.data || []);
+      const devices = devicesRes.data || [];
+      setDeviceTypes(devices);
       setServiceTypes(servicesRes.data || []);
       setEngineers(engineersRes.data || []);
+
+      // Find and set the default device type (Laptop)
+      const laptopDevice = devices.find(
+        (d) => d.name.toLowerCase() === "laptop"
+      );
+      if (laptopDevice) {
+        setDefaultDeviceTypeId(laptopDevice._id);
+        // Update existing order rows to have the default device type
+        setOrderRows((prevRows) =>
+          prevRows.map((row) => ({
+            ...row,
+            deviceTypeId: row.deviceTypeId || laptopDevice._id,
+          }))
+        );
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -285,10 +302,6 @@ const NewOrderPage: React.FC = () => {
       alert("Please select a customer");
       return;
     }
-    if (row.services.length === 0) {
-      alert("Please add at least one service");
-      return;
-    }
     if (!row.deviceTypeId) {
       alert("Please select a device type");
       return;
@@ -445,7 +458,7 @@ const NewOrderPage: React.FC = () => {
                       Customer *
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[280px]">
-                      Services *
+                      Services
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">
                       Device Type *
@@ -998,7 +1011,7 @@ const NewOrderPage: React.FC = () => {
                   {/* Services */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Services *
+                      Services
                     </label>
                     <div className="space-y-2">
                       {row.services.map((service) => (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../lib/api';
 import type { ServiceOrder } from '../types';
 import { Plus, Search, Eye, Trash2, Edit } from 'lucide-react';
@@ -7,16 +7,19 @@ import { format } from 'date-fns';
 
 const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
+  const { workStatus } = useParams<{ workStatus?: string }>();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [workStatusFilter, setWorkStatusFilter] = useState<'all' | 'todo' | 'pending' | 'completed'>('all');
+
+  const workStatusFilter = (workStatus || 'all') as 'all' | 'todo' | 'pending' | 'completed';
 
   useEffect(() => {
     fetchOrders();
   }, [workStatusFilter]);
 
   const fetchOrders = async () => {
+    setLoading(true);
     try {
       const params: any = { search };
       if (workStatusFilter !== 'all') {
@@ -57,6 +60,15 @@ const OrdersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Loading Bar */}
+      {loading && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <div className="h-1 bg-purple-600 animate-pulse" style={{
+            animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+          }}></div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -73,7 +85,7 @@ const OrdersPage: React.FC = () => {
       <div className="card p-0 overflow-hidden">
         <div className="flex flex-wrap border-b border-gray-200">
           <button
-            onClick={() => setWorkStatusFilter('all')}
+            onClick={() => navigate('/orders')}
             className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
               workStatusFilter === 'all'
                 ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-600'
@@ -83,7 +95,7 @@ const OrdersPage: React.FC = () => {
             All Orders
           </button>
           <button
-            onClick={() => setWorkStatusFilter('todo')}
+            onClick={() => navigate('/orders/status/todo')}
             className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
               workStatusFilter === 'todo'
                 ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
@@ -93,7 +105,7 @@ const OrdersPage: React.FC = () => {
             To Do
           </button>
           <button
-            onClick={() => setWorkStatusFilter('pending')}
+            onClick={() => navigate('/orders/status/pending')}
             className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
               workStatusFilter === 'pending'
                 ? 'bg-orange-50 text-orange-700 border-b-2 border-orange-600'
@@ -103,7 +115,7 @@ const OrdersPage: React.FC = () => {
             In Progress
           </button>
           <button
-            onClick={() => setWorkStatusFilter('completed')}
+            onClick={() => navigate('/orders/status/completed')}
             className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
               workStatusFilter === 'completed'
                 ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
@@ -135,15 +147,7 @@ const OrdersPage: React.FC = () => {
       </div>
 
       {/* Orders Table */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
-            <p className="text-gray-500">Loading orders...</p>
-          </div>
-        </div>
-      ) : (
-        <div className="card p-0 overflow-hidden">
+      <div className="card p-0 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
@@ -257,13 +261,12 @@ const OrdersPage: React.FC = () => {
             </table>
           </div>
 
-          {orders.length === 0 && (
+          {orders.length === 0 && !loading && (
             <div className="text-center py-12">
               <p className="text-gray-500">No orders found</p>
             </div>
           )}
         </div>
-      )}
     </div>
   );
 };

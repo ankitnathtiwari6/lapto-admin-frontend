@@ -104,6 +104,7 @@ function AppRoutes() {
       >
         <Route index element={<RoleBasedHome />} />
         <Route path="orders" element={<OrdersPage />} />
+        <Route path="orders/status/:workStatus" element={<OrdersPage />} />
         <Route path="orders/new" element={<NewOrderPage />} />
         <Route path="orders/:id" element={<OrderDetailPage />} />
         <Route path="orders/:id/edit" element={<EditOrderPage />} />
