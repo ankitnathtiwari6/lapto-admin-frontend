@@ -475,6 +475,15 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                         {task.title}
                       </h5>
 
+                      {/* Description */}
+                      {task.description && (
+                        <div className="mb-2">
+                          <p className="text-xs text-gray-600 line-clamp-2">
+                            {task.description}
+                          </p>
+                        </div>
+                      )}
+
                       {/* Task Type */}
                       {task.taskTypeName && (
                         <div className="mb-2">
@@ -528,6 +537,11 @@ const WorkAssignmentPipeline: React.FC<WorkAssignmentPipelineProps> = ({
                           >
                             {task.outcome.replace("_", " ").toUpperCase()}
                           </span>
+                          {task.outcomeNotes && (
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                              {task.outcomeNotes}
+                            </p>
+                          )}
                         </div>
                       )}
 
