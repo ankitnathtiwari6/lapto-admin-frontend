@@ -159,84 +159,114 @@ const EngineerTasksPage: React.FC = () => {
   const renderTaskCard = (task: EngineerTask) => (
     <div
       key={task._id}
-      className="group bg-white rounded-xl border border-gray-200 p-3 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer active:scale-[0.98]"
+      className="group bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer active:scale-[0.98]"
       onClick={() => navigate(`/engineer/tasks/${task._id}`)}
     >
-      <div className="flex items-start gap-3">
-        {/* Status Icon - Animated */}
-        <div
-          className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 ${
-            task.status === "completed"
-              ? "bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-200"
-              : task.status === "in_progress"
-              ? "bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-200"
-              : "bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-200"
-          }`}
-        >
-          {task.status === "completed" ? (
-            <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          ) : task.status === "in_progress" ? (
-            <Clock className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          ) : (
-            <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          )}
+      <div className="space-y-3">
+        {/* Header - Task Type as Heading */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-bold text-gray-900 text-base md:text-lg line-clamp-1 group-hover:text-purple-600 transition-colors">
+                {task.taskTypeName || task.title}
+              </h3>
+              {task.isOrderTask && (
+                <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-semibold shrink-0">
+                  Order
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>Assigned by: {task.createdByName || 'Unknown'}</span>
+              <span>•</span>
+              <span>{task.createdAt ? format(new Date(task.createdAt), "MMM dd, yyyy") : format(new Date(task.assignedAt), "MMM dd, yyyy")}</span>
+            </div>
+          </div>
+          <div
+            className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 ${
+              task.status === "completed"
+                ? "bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-200"
+                : task.status === "in_progress"
+                ? "bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-200"
+                : "bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-200"
+            }`}
+          >
+            {task.status === "completed" ? (
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            ) : task.status === "in_progress" ? (
+              <Clock className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            ) : (
+              <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            )}
+          </div>
         </div>
 
-        {/* Task Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <h3 className="font-bold text-gray-900 text-sm md:text-base line-clamp-1 group-hover:text-purple-600 transition-colors">
-              {task.title}
-            </h3>
-            {task.isOrderTask && (
-              <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-semibold shrink-0">
-                Order
-              </span>
-            )}
-          </div>
+        {/* Voucher Number */}
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+          <p className="text-purple-600 font-semibold text-sm">
+            {task.orderId.voucherNo}
+          </p>
+        </div>
 
-          <div className="space-y-1 text-xs mb-2">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-              <p className="text-purple-600 font-semibold">
-                {task.orderId.voucherNo}
-              </p>
-            </div>
-            <p className="text-gray-600 line-clamp-1 pl-3">
-              {task.orderId.device?.deviceTypeName || "N/A"} • {task.orderId.device?.brand} {task.orderId.device?.model}
-            </p>
-            <p className="text-gray-500 pl-3">
-              {format(new Date(task.assignedAt), "MMM dd, yyyy")}
-            </p>
+        {/* Device Details */}
+        <div className="space-y-1 text-xs text-gray-600">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-700">Device Type:</span>
+            <span>{task.orderId.device?.deviceTypeName || "N/A"}</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-700">Brand & Model:</span>
+            <span>{task.orderId.device?.brand} {task.orderId.device?.model}</span>
+          </div>
+        </div>
 
-          {/* Action Buttons - Modern */}
-          <div
-            className="flex gap-2 mt-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {task.status === "pending" && (
-              <button
-                onClick={() => handleStartTask(task)}
-                className="bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs px-3 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 font-semibold flex items-center gap-1.5 shadow-md hover:shadow-lg active:scale-95"
-              >
-                <Play className="w-3.5 h-3.5" />
-                Start Task
-              </button>
-            )}
-            {task.status === "in_progress" && (
-              <button
-                onClick={() => {
-                  setSelectedTask(task);
-                  setShowCompleteModal(true);
-                }}
-                className="bg-gradient-to-r from-green-600 to-green-700 text-white text-xs px-3 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 font-semibold flex items-center gap-1.5 shadow-md hover:shadow-lg active:scale-95"
-              >
-                <CheckSquare className="w-3.5 h-3.5" />
-                Complete
-              </button>
-            )}
+        {/* Problem Description */}
+        {task.orderId.problemDescription && (
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-1">Problem Description:</p>
+            <p className="text-sm text-gray-700 line-clamp-2">
+              {task.orderId.problemDescription}
+            </p>
           </div>
+        )}
+
+        {/* Task Description at bottom */}
+        {task.description && task.description !== task.orderId.problemDescription && (
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-1">Task Description:</p>
+            <p className="text-sm text-gray-700 line-clamp-2">
+              {task.description}
+            </p>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div
+          className="flex gap-2 pt-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {task.status === "pending" && (
+            <button
+              onClick={() => handleStartTask(task)}
+              className="bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs px-3 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 font-semibold flex items-center gap-1.5 shadow-md hover:shadow-lg active:scale-95"
+            >
+              <Play className="w-3.5 h-3.5" />
+              Start Task
+            </button>
+          )}
+          {task.status === "in_progress" && (
+            <button
+              onClick={() => {
+                setSelectedTask(task);
+                setShowCompleteModal(true);
+              }}
+              className="bg-gradient-to-r from-green-600 to-green-700 text-white text-xs px-3 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 font-semibold flex items-center gap-1.5 shadow-md hover:shadow-lg active:scale-95"
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              Complete
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -497,9 +527,13 @@ const EngineerTasksPage: React.FC = () => {
                                     onClick={() => navigate(`/engineer/tasks/${task._id}`)}
                                     className="cursor-pointer"
                                   >
-                                    <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-2 pr-6 group-hover:text-purple-600 transition-colors">
-                                      {task.title}
+                                    <h3 className="font-bold text-gray-900 text-sm line-clamp-1 mb-1 pr-6 group-hover:text-purple-600 transition-colors">
+                                      {task.taskTypeName || task.title}
                                     </h3>
+
+                                    <p className="text-xs text-gray-500 mb-2">
+                                      {task.createdByName || 'Unknown'} • {task.createdAt ? format(new Date(task.createdAt), "MMM dd") : format(new Date(task.assignedAt), "MMM dd")}
+                                    </p>
 
                                     <div className="space-y-1.5 text-xs mb-3">
                                       <div className="flex items-center gap-1.5">
@@ -511,9 +545,14 @@ const EngineerTasksPage: React.FC = () => {
                                       <p className="text-gray-600 line-clamp-1 pl-3">
                                         {task.orderId.device?.deviceTypeName || "N/A"}
                                       </p>
-                                      <p className="text-gray-500 pl-3 text-xs">
-                                        {format(new Date(task.assignedAt), "MMM dd")}
+                                      <p className="text-gray-600 line-clamp-1 pl-3">
+                                        {task.orderId.device?.brand} {task.orderId.device?.model}
                                       </p>
+                                      {task.description && (
+                                        <p className="text-gray-500 line-clamp-1 pl-3 pt-1 border-t border-gray-100 mt-2">
+                                          {task.description}
+                                        </p>
+                                      )}
                                     </div>
 
                                     {/* Action Button */}
@@ -590,9 +629,13 @@ const EngineerTasksPage: React.FC = () => {
                                     onClick={() => navigate(`/engineer/tasks/${task._id}`)}
                                     className="cursor-pointer"
                                   >
-                                    <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-2 pr-6 group-hover:text-purple-600 transition-colors">
-                                      {task.title}
+                                    <h3 className="font-bold text-gray-900 text-sm line-clamp-1 mb-1 pr-6 group-hover:text-purple-600 transition-colors">
+                                      {task.taskTypeName || task.title}
                                     </h3>
+
+                                    <p className="text-xs text-gray-500 mb-2">
+                                      {task.createdByName || 'Unknown'} • {task.createdAt ? format(new Date(task.createdAt), "MMM dd") : format(new Date(task.assignedAt), "MMM dd")}
+                                    </p>
 
                                     <div className="space-y-1.5 text-xs mb-3">
                                       <div className="flex items-center gap-1.5">
@@ -604,9 +647,14 @@ const EngineerTasksPage: React.FC = () => {
                                       <p className="text-gray-600 line-clamp-1 pl-3">
                                         {task.orderId.device?.deviceTypeName || "N/A"}
                                       </p>
-                                      <p className="text-gray-500 pl-3 text-xs">
-                                        {format(new Date(task.assignedAt), "MMM dd")}
+                                      <p className="text-gray-600 line-clamp-1 pl-3">
+                                        {task.orderId.device?.brand} {task.orderId.device?.model}
                                       </p>
+                                      {task.description && (
+                                        <p className="text-gray-500 line-clamp-1 pl-3 pt-1 border-t border-gray-100 mt-2">
+                                          {task.description}
+                                        </p>
+                                      )}
                                     </div>
 
                                     {/* Action Button */}
@@ -686,9 +734,13 @@ const EngineerTasksPage: React.FC = () => {
                                     onClick={() => navigate(`/engineer/tasks/${task._id}`)}
                                     className="cursor-pointer"
                                   >
-                                    <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-2 pr-6 group-hover:text-purple-600 transition-colors">
-                                      {task.title}
+                                    <h3 className="font-bold text-gray-900 text-sm line-clamp-1 mb-1 pr-6 group-hover:text-purple-600 transition-colors">
+                                      {task.taskTypeName || task.title}
                                     </h3>
+
+                                    <p className="text-xs text-gray-500 mb-2">
+                                      {task.createdByName || 'Unknown'} • {task.createdAt ? format(new Date(task.createdAt), "MMM dd") : format(new Date(task.assignedAt), "MMM dd")}
+                                    </p>
 
                                     <div className="space-y-1.5 text-xs mb-3">
                                       <div className="flex items-center gap-1.5">
@@ -700,9 +752,14 @@ const EngineerTasksPage: React.FC = () => {
                                       <p className="text-gray-600 line-clamp-1 pl-3">
                                         {task.orderId.device?.deviceTypeName || "N/A"}
                                       </p>
-                                      <p className="text-gray-500 pl-3 text-xs">
-                                        {format(new Date(task.assignedAt), "MMM dd")}
+                                      <p className="text-gray-600 line-clamp-1 pl-3">
+                                        {task.orderId.device?.brand} {task.orderId.device?.model}
                                       </p>
+                                      {task.description && (
+                                        <p className="text-gray-500 line-clamp-1 pl-3 pt-1 border-t border-gray-100 mt-2">
+                                          {task.description}
+                                        </p>
+                                      )}
                                     </div>
 
                                     {/* Completed Badge */}

@@ -49,6 +49,8 @@ export interface EngineerTask {
   description?: string;
   taskType?: string;
   taskTypeName?: string;
+  createdByName?: string;
+  createdAt?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked' | 'on_hold';
   progress: number;
   outcome?: 'completed' | 'returned' | 'parts_ordered' | 'replaced' | 'repaired' | 'cancelled' | 'other';
@@ -101,7 +103,7 @@ export interface AssignedTask {
 
 class EngineerService {
   async getStats() {
-    const response = await api.get<{ success: boolean; data: EngineerStats }>('/engineer/stats');
+    const response = await api.get<{ success: boolean; data: EngineerStats }>('/engineers/stats');
     return response.data;
   }
 
@@ -109,18 +111,18 @@ class EngineerService {
     const params: any = { sortBy, order };
     if (status) params.status = status;
 
-    const response = await api.get<{ success: boolean; count: number; data: EngineerTask[] }>('/engineer/tasks', { params });
+    const response = await api.get<{ success: boolean; count: number; data: EngineerTask[] }>('/engineers/tasks', { params });
     return response.data;
   }
 
   async getTaskById(id: string) {
-    const response = await api.get<{ success: boolean; data: EngineerTask }>(`/engineer/tasks/${id}`);
+    const response = await api.get<{ success: boolean; data: EngineerTask }>(`/engineers/tasks/${id}`);
     return response.data;
   }
 
   async updateTaskStatus(id: string, status: string, notes?: string) {
     const response = await api.put<{ success: boolean; message: string; data: EngineerTask }>(
-      `/engineer/tasks/${id}/status`,
+      `/engineers/tasks/${id}/status`,
       { status, notes }
     );
     return response.data;
@@ -145,7 +147,7 @@ class EngineerService {
   }
 
   async getAssignedTasks() {
-    const response = await api.get<{ success: boolean; data: AssignedTask[] }>('/engineer/assigned-tasks');
+    const response = await api.get<{ success: boolean; data: AssignedTask[] }>('/engineers/assigned-tasks');
     return response.data;
   }
 

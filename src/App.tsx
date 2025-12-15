@@ -66,7 +66,7 @@ function LaptoAdminRoute({ children }: { children: React.ReactNode }) {
 function RoleBasedHome() {
   const { user } = useAuth();
 
-  if (user?.role === 'engineer') {
+  if (user?.role === "engineer") {
     return <Navigate to="/engineer/tasks" replace />;
   }
 
@@ -88,10 +88,16 @@ function AppRoutes() {
           </LaptoAdminRoute>
         }
       >
-        <Route index element={<Navigate to="/lapto-admin/companies" replace />} />
+        <Route
+          index
+          element={<Navigate to="/lapto-admin/companies" replace />}
+        />
         <Route path="companies" element={<CompanyListPage />} />
         <Route path="companies/new" element={<CreateCompanyPage />} />
-        <Route path="companies/:companyId/staff" element={<CompanyStaffPage />} />
+        <Route
+          path="companies/:companyId/staff"
+          element={<CompanyStaffPage />}
+        />
       </Route>
 
       {/* Regular App Routes */}

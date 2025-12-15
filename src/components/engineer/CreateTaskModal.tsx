@@ -162,8 +162,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 <option value="">Choose an order...</option>
                 {orders.map((order) => (
                   <option key={order._id} value={order._id}>
-                    {order.orderNumber} - {order.device?.deviceTypeName || "N/A"}{" "}
-                    ({order.device?.brand} {order.device?.model})
+                    {order.orderNumber} -{" "}
+                    {order.device?.deviceTypeName || "N/A"} (
+                    {order.device?.brand} {order.device?.model})
                   </option>
                 ))}
               </select>
@@ -180,10 +181,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           {prefilledOrderId && selectedOrder && (
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
               <p className="text-xs text-purple-600 font-medium mb-1">
-                Selected Order
+                Selected Order/Voucher No
               </p>
               <p className="text-sm font-semibold text-gray-900">
-                {selectedOrder.orderNumber}
+                {selectedOrder.voucherNo}
               </p>
               {selectedOrder.device && (
                 <p className="text-xs text-gray-600 mt-1">
@@ -210,4 +211,3 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 };
 
 export default CreateTaskModal;
-
